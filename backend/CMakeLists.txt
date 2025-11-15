@@ -1,8 +1,19 @@
 cmake_minimum_required(VERSION 3.28)
+
+set(CMAKE_C_COMPILER /usr/bin/gcc)
+set(CMAKE_CXX_COMPILER /usr/bin/g++)
+add_compile_options(-std=c++20)
 project(reComm)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+enable_language(CXX)
+
+message(STATUS "C++ Compiler: ${CMAKE_CXX_COMPILER}")
+message(STATUS "C++ Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
+
 add_executable(reComm main.cpp
         domain/user/User.h
         domain/user/UserRepository.h
