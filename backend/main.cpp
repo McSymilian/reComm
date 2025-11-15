@@ -40,17 +40,6 @@ int main(int argc, char** argv) {
     CLI11_PARSE(app, argc, argv);
     Logger::setVerbalityLevel(verbalityLevel);
 
-    const auto repository = std::make_shared<FileUserRepository>(dbPath);
-    const auto userService = std::make_shared<UserService>(repository);
-
-    const auto authRequestService = std::make_shared<AuthRequestService>(userService);
-    const auto registerRequestService = std::make_shared<RegisterRequestService>(userService);
-    const std::unordered_map<std::string, std::shared_ptr<RequestService>> requestServices {
-        {registerRequestService->getHandledMethodName(), registerRequestService},
-        {authRequestService->getHandledMethodName(), authRequestService}
-    };
-    const auto handleRequestService = RequestHandleService(requestServices);
-
     struct sockaddr_in localAddress, clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
 
@@ -74,6 +63,18 @@ int main(int argc, char** argv) {
     Logger::log(std::format("Serwer UPD nasłuchuje na porcie {}", port), Logger::Level::INFO, Logger::Importance::HIGH);
     Logger::log(std::format("Źródło bazy danych {}", dbPath), Logger::Level::INFO, Logger::Importance::HIGH);
     Logger::log(std::format("Poziom rozmowności {}", verbalityLevel), Logger::Level::INFO, Logger::Importance::HIGH);
+
+    const auto repository = std::make_shared<FileUserRepository>(dbPath);
+    const auto jwtService = std::make_shared<JwtService>("super_tajne_hasło_do_jwt_nie_zmienie_w_produkcji");
+    const auto userService = std::make_shared<UserService>(repository, jwtService);
+
+    const auto authRequestService = std::make_shared<AuthRequestService>(userService);
+    const auto registerRequestService = std::make_shared<RegisterRequestService>(userService);
+    const std::unordered_map<std::string, std::shared_ptr<RequestService>> requestServices {
+            {registerRequestService->getHandledMethodName(), registerRequestService},
+            {authRequestService->getHandledMethodName(), authRequestService}
+    };
+    const auto handleRequestService = RequestHandleService(requestServices);
 
     char buff[4096];
 
