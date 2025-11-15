@@ -206,8 +206,3 @@ Nieprawidłowe dane (401):
 - CMake: 3.16+
 - Make
 - OpenSSL: 1.1.1+ (biblioteki deweloperskie)
-- Biblioteki: nlohmann/json (zarządzane przez CMake)
-
-## Licencja
-
-[Dodaj informacje o licencji]
