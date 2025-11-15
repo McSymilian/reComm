@@ -55,24 +55,5 @@ public:
 
             return response;
         }
-        // else if(method == "AUTH") {
-        //     const std::string username = request.value("username", "");
-        //     const std::string password = request.value("password", "");
-        //
-        //     std::optional<std::string> token = userService->authenticate(username, password);
-        //     if(token.has_value()) {
-        //         response["code"] = 200;
-        //         response["message"] = "Authentication successful";
-        //         response["token"] = token.value();
-        //     } else {
-        //         response["code"] = 401;
-        //         response["message"] = "Invalid credentials";
-        //     }
-        // }
-
-        response["code"] = 400;
-        response["message"] = "Unknown method";
-
-        return response;
     }
 };
