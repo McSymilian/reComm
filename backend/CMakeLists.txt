@@ -28,7 +28,12 @@ add_executable(reComm main.cpp
         exceptions/user_already_exists_error.h
         exceptions/bad_request_format_error.h
         application/request_handlers/AuthRequestService.h
-        exceptions/invalid_credentials_error.h)
+        exceptions/invalid_credentials_error.h
+        application/JwtService.h
+        domain/friendship/Friendship.h
+        domain/friendship/FriendshipRepository.h
+        infrastructure/FileFriendshipRepository.h
+        application/FriendshipService.h)
 
 include(FetchContent)
 set(JWT_BUILD_TESTS OFF)
