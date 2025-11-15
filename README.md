@@ -1,6 +1,6 @@
 # reComm Backend
 
-Aplikacja backendowa dla systemu reComm написана w C++20.
+Aplikacja serwerowa dla systemu reComm w C++20.
 
 ## Instalacja
 
