@@ -14,7 +14,6 @@
 #endif
 
 class FileUserRepository final : public UserRepository {
-private:
     fs::path filePath;
     
     nlohmann::json loadData() const {
@@ -77,5 +76,21 @@ public:
 
     bool exists(const std::string& username) override {
         return findByUsername(username).has_value();
+    }
+
+    bool exists(const UUIDv4::UUID &uuid) override {
+        return findByUUID(uuid).has_value();
+    }
+
+    std::optional<User> findByUUID(const UUIDv4::UUID &uuid) override {
+        auto data = loadData();
+
+        for(const auto& item : data) {
+            if(item["uuid"] == uuid.str()) {
+                return User::fromJson(item);
+            }
+        }
+
+        return std::nullopt;
     }
 };

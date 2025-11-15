@@ -9,6 +9,8 @@ public:
     
     virtual bool save(const User& user) = 0;
     virtual std::optional<User> findByUsername(const std::string& username) = 0;
+    virtual std::optional<User> findByUUID(const UUIDv4::UUID& uuid) = 0;
     virtual std::vector<User> findAll() = 0;
-    virtual bool exists(const std::string& uuid) = 0;
+    virtual bool exists(const std::string& username) = 0;
+    virtual bool exists(const UUIDv4::UUID& uuid) = 0;
 };
