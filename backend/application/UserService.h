@@ -1,6 +1,6 @@
 #pragma once
-#include "../domain/User.h"
-#include "../domain/UserRepository.h"
+#include "../domain/user/User.h"
+#include "../domain/user/UserRepository.h"
 #include <memory>
 #include <string>
 #include <openssl/sha.h>
@@ -10,9 +10,9 @@
 #include <chrono>
 
 class UserService {
-    std::shared_ptr<UserRepository> repository;
+    const std::shared_ptr<UserRepository> repository;
     UUIDv4::UUIDGenerator<std::mt19937_64> uuidGenerator;
-    std::string jwtSecret;
+    const std::string jwtSecret;
 
     static std::string hashPassword(const std::string& password) {
         unsigned char hash[SHA256_DIGEST_LENGTH];

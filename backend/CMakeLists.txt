@@ -2,12 +2,22 @@ cmake_minimum_required(VERSION 3.28)
 project(reComm)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(reComm main.cpp
-        domain/User.h
-        domain/UserRepository.h
+        domain/user/User.h
+        domain/user/UserRepository.h
         application/UserService.h
         infrastructure/FileUserRepository.h
-        infrastructure/FileUserRepository.h)
+        infrastructure/FileUserRepository.h
+        application/RequestHandleService.h
+        application/RequestService.h
+        application/RegisterRequestService.h
+        exceptions/unknown_method_error.h
+        utils/Logger.h
+        exceptions/user_already_exists_error.h
+        exceptions/bad_request_format_error.h
+        "application/AuthRequestService.h"
+        exceptions/invalid_credentials_error.h)
 
 include(FetchContent)
 set(JWT_BUILD_TESTS OFF)
