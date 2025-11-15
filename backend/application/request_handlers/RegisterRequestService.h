@@ -20,7 +20,7 @@ public:
         const std::string password = request.value("password", "");
 
         std::optional<std::string> token = userService->registerUser(username, password);
-        if(token->empty())
+        if(!token.has_value())
             throw user_already_exists_error("Username is already taken");
 
         json response;

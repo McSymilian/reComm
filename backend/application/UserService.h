@@ -8,6 +8,7 @@
 #include <sstream>
 #include <jwt-cpp/jwt.h>
 #include <chrono>
+#include <optional>
 
 class UserService {
     const std::shared_ptr<UserRepository> repository;
@@ -63,8 +64,8 @@ public:
     }
     
     std::optional<std::string> authenticate(const std::string& username, const std::string& password) {
-        auto user = repository->findByUsername(username);
-        if(!user) return std::nullopt;
+        std::optional<User> user = repository->findByUsername(username);
+        if(!user.has_value()) return std::nullopt;
         
         if(user->passwordHash != hashPassword(password))
             return std::nullopt;

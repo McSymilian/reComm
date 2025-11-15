@@ -20,7 +20,7 @@ public:
         const std::string password = request.value("password", "");
 
         std::optional<std::string> token = userService->authenticate(username, password);
-        if(token->empty())
+        if(!token.has_value())
             throw invalid_credentials_error();
 
         json response;

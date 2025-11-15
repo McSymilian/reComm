@@ -48,6 +48,11 @@ public:
             response["message"] = e.what();
 
             return response;
+        } catch (const invalid_credentials_error& e) {
+            response["code"] = 401;
+            response["message"] = e.what();
+
+            return response;
         }  catch (const std::exception& e) {
             Logger::log(std::string("Error handling request: ") + e.what(), Logger::Level::ERROR);
             response["code"] = 500;
