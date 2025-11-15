@@ -30,7 +30,7 @@ sudo apt install -y libssl-dev
 gcc --version    # Powinno pokazać GCC 10.x lub nowszy
 cmake --version  # Powinno pokazać CMake 3.16.x lub nowszy
 make --version
-openssl version  # Powinno pokazać OpenSSL 1.1.1 lub nowszy
+openssl version  # Powinno pokazać OpenSSL 1.0.1 lub nowszy
 ```
 
 ### openSUSE Leap (15.3 i nowsze)
@@ -59,14 +59,14 @@ sudo zypper install -y libopenssl-devel
 gcc --version    # Powinno pokazać GCC 10.x lub nowszy
 cmake --version
 make --version
-openssl version  # Powinno pokazać OpenSSL 1.1.1 lub nowszy
+openssl version  # Powinno pokazać OpenSSL 1.0.1 lub nowszy
 ```
 
 ### Budowanie projektu
 
 ```bash
 # Przejście do katalogu projektu
-cd reComm
+cd reComm/backend/
 
 # Utworzenie katalogu build
 mkdir build && cd build
