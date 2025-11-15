@@ -9,14 +9,14 @@ add_executable(reComm main.cpp
         application/UserService.h
         infrastructure/FileUserRepository.h
         infrastructure/FileUserRepository.h
-        application/RequestHandleService.h
-        application/RequestService.h
-        application/RegisterRequestService.h
+        application/request_handlers/RequestHandleService.h
+        application/request_handlers/RequestService.h
+        application/request_handlers/RegisterRequestService.h
         exceptions/unknown_method_error.h
         utils/Logger.h
         exceptions/user_already_exists_error.h
         exceptions/bad_request_format_error.h
-        application/AuthRequestService.h
+        application/request_handlers/AuthRequestService.h
         exceptions/invalid_credentials_error.h)
 
 include(FetchContent)

@@ -2,8 +2,8 @@
 #include <nlohmann/json.hpp>
 
 #include "RequestService.h"
-#include "UserService.h"
-#include "../exceptions/user_already_exists_error.h"
+#include "../UserService.h"
+#include "../../exceptions/user_already_exists_error.h"
 
 using json = nlohmann::json;
 class RegisterRequestService final : public RequestService {

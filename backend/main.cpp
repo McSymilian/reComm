@@ -11,8 +11,8 @@
 #include <CLI/CLI.hpp>
 #include <nlohmann/json.hpp>
 
-#include "application/AuthRequestService.h"
-#include "application/RequestHandleService.h"
+#include "application/request_handlers/AuthRequestService.h"
+#include "application/request_handlers/RequestHandleService.h"
 #include "infrastructure/FileUserRepository.h"
 #include "application/UserService.h"
 

@@ -4,11 +4,11 @@
 #include <utility>
 
 #include "RegisterRequestService.h"
-#include "UserService.h"
-#include "../exceptions/unknown_method_error.h"
-#include "../exceptions/user_already_exists_error.h"
-#include "../exceptions/bad_request_format_error.h"
-#include "../utils/Logger.h"
+#include "../UserService.h"
+#include "../../exceptions/unknown_method_error.h"
+#include "../../exceptions/user_already_exists_error.h"
+#include "../../exceptions/bad_request_format_error.h"
+#include "../../utils/Logger.h"
 
 using json = nlohmann::json;
 
