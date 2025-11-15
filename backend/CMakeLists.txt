@@ -16,7 +16,7 @@ add_executable(reComm main.cpp
         utils/Logger.h
         exceptions/user_already_exists_error.h
         exceptions/bad_request_format_error.h
-        "application/AuthRequestService.h"
+        application/AuthRequestService.h
         exceptions/invalid_credentials_error.h)
 
 include(FetchContent)
