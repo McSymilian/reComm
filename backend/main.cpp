@@ -25,8 +25,7 @@ constexpr int DEFAULT_VERBALITY = 10;
 const std::string DEFAULT_DB_PATH = "users.json";
 
 void handleClient(int client_socket, const RequestHandleService& handleRequestService, const sockaddr_in& clientAddress) {
-    char buff[4096];
-    std::memset(buff, 0, sizeof(buff));
+    char buff[4096] = {};
 
     char clientIP[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
@@ -47,7 +46,7 @@ void handleClient(int client_socket, const RequestHandleService& handleRequestSe
 
             Logger::log(std::format("Request from {}:{}: {}", clientIP, clientPort, request.dump()), Logger::Level::INFO, Logger::Importance::LOW);
 
-            json response = handleRequestService.handleRequest(request);
+            const json response = handleRequestService.handleRequest(request);
 
             std::string responseStr = response.dump() + "\n";
             send(client_socket, responseStr.c_str(), responseStr.size(), 0);
@@ -91,21 +90,21 @@ int main(int argc, char** argv) {
     localAddress.sin_port = htons(port);
     localAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    const int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
     if(server_socket == -1) {
         Logger::log("Could not create socket", Logger::Level::ERROR, Logger::Importance::MEDIUM);
         exit(EXIT_FAILURE);
     }
 
-    int opt = 1;
+    constexpr int opt = 1;
     if(setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
         Logger::log("Could not set socket options", Logger::Level::ERROR, Logger::Importance::MEDIUM);
         close(server_socket);
         exit(EXIT_FAILURE);
     }
 
-    if(bind(server_socket, (struct sockaddr*)&localAddress, sizeof(localAddress)) == -1) {
+    if(bind(server_socket, reinterpret_cast<struct sockaddr *>(&localAddress), sizeof(localAddress)) == -1) {
         Logger::log("Could not bind", Logger::Level::ERROR, Logger::Importance::MEDIUM);
         close(server_socket);
         exit(EXIT_FAILURE);
@@ -134,7 +133,7 @@ int main(int argc, char** argv) {
     const auto handleRequestService = RequestHandleService(requestServices);
 
     for(;;) {
-        int client_socket = accept(server_socket, (struct sockaddr*)&clientAddress, &clientAddressLen);
+        int client_socket = accept(server_socket, reinterpret_cast<struct sockaddr *>(&clientAddress), &clientAddressLen);
 
         if(client_socket == -1) {
             Logger::log("Could not accept connection", Logger::Level::ERROR, Logger::Importance::MEDIUM);
