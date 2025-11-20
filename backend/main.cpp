@@ -8,6 +8,8 @@
 #include <format>
 #include <iostream>
 #include <unistd.h>
+#include <thread>
+#include <memory>
 #include <CLI/CLI.hpp>
 #include <nlohmann/json.hpp>
 
@@ -21,6 +23,48 @@ using json = nlohmann::json;
 constexpr int DEFAULT_PORT = 8080;
 constexpr int DEFAULT_VERBALITY = 10;
 const std::string DEFAULT_DB_PATH = "users.json";
+
+void handleClient(int client_socket, const RequestHandleService& handleRequestService, const sockaddr_in& clientAddress) {
+    char buff[4096];
+    std::memset(buff, 0, sizeof(buff));
+
+    char clientIP[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
+    int clientPort = ntohs(clientAddress.sin_port);
+
+    Logger::log(std::format("Nowe połączenie z {}:{}", clientIP, clientPort), Logger::Level::INFO, Logger::Importance::LOW);
+
+    ssize_t n = recv(client_socket, buff, sizeof(buff)-1, 0);
+
+    if(n > 0) {
+        try {
+            json request;
+            try {
+                request = json::parse(buff);
+            } catch(const std::exception&) {
+                request = json::parse("{}");
+            }
+
+            Logger::log(std::format("Request from {}:{}: {}", clientIP, clientPort, request.dump()), Logger::Level::INFO, Logger::Importance::LOW);
+
+            json response = handleRequestService.handleRequest(request);
+
+            std::string responseStr = response.dump() + "\n";
+            send(client_socket, responseStr.c_str(), responseStr.size(), 0);
+
+            Logger::log(std::format("Response to {}:{}: {}", clientIP, clientPort, responseStr), Logger::Level::INFO, Logger::Importance::LOW);
+        } catch(const std::exception& e) {
+            Logger::log(std::format("Internal Error for {}:{}: {}", clientIP, clientPort, e.what()), Logger::Level::ERROR, Logger::Importance::HIGH);
+        }
+    } else if(n == 0) {
+        Logger::log(std::format("Client {}:{} disconnected", clientIP, clientPort), Logger::Level::INFO, Logger::Importance::LOW);
+    } else {
+        Logger::log(std::format("Error receiving data from {}:{}", clientIP, clientPort), Logger::Level::ERROR, Logger::Importance::MEDIUM);
+    }
+
+    close(client_socket);
+    Logger::log(std::format("Zamknięto połączenie z {}:{}", clientIP, clientPort), Logger::Level::INFO, Logger::Importance::LOW);
+}
 
 int main(int argc, char** argv) {
     int port = DEFAULT_PORT;
@@ -50,25 +94,25 @@ int main(int argc, char** argv) {
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
     if(server_socket == -1) {
-        Logger::log("Could not create socket", Logger::Level::ERROR);
+        Logger::log("Could not create socket", Logger::Level::ERROR, Logger::Importance::MEDIUM);
         exit(EXIT_FAILURE);
     }
 
     int opt = 1;
     if(setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        Logger::log("Could not set socket options", Logger::Level::ERROR);
+        Logger::log("Could not set socket options", Logger::Level::ERROR, Logger::Importance::MEDIUM);
         close(server_socket);
         exit(EXIT_FAILURE);
     }
 
     if(bind(server_socket, (struct sockaddr*)&localAddress, sizeof(localAddress)) == -1) {
-        Logger::log("Could not bind", Logger::Level::ERROR);
+        Logger::log("Could not bind", Logger::Level::ERROR, Logger::Importance::MEDIUM);
         close(server_socket);
         exit(EXIT_FAILURE);
     }
 
     if(listen(server_socket, 5) == -1) {
-        Logger::log("Could not listen", Logger::Level::ERROR);
+        Logger::log("Could not listen", Logger::Level::ERROR, Logger::Importance::MEDIUM);
         close(server_socket);
         exit(EXIT_FAILURE);
     }
@@ -89,42 +133,16 @@ int main(int argc, char** argv) {
     };
     const auto handleRequestService = RequestHandleService(requestServices);
 
-    char buff[4096];
-
     for(;;) {
         int client_socket = accept(server_socket, (struct sockaddr*)&clientAddress, &clientAddressLen);
 
         if(client_socket == -1) {
-            Logger::log("Could not accept connection", Logger::Level::ERROR);
+            Logger::log("Could not accept connection", Logger::Level::ERROR, Logger::Importance::MEDIUM);
             continue;
         }
 
-        std::memset(buff, 0, sizeof(buff));
-        int n = recv(client_socket, buff, sizeof(buff)-1, 0);
-
-        if(n > 0) {
-            try {
-                json request;
-                try {
-                    request = json::parse(buff);
-                } catch(const std::exception& e) {
-                    request = json::parse("{}");
-                }
-
-                Logger::log(std::format("Request: {}", request.dump()));
-
-                json response = handleRequestService.handleRequest(request);
-
-                std::string responseStr = response.dump() + "\n";
-                send(client_socket, responseStr.c_str(), responseStr.size(), 0);
-
-                Logger::log(std::format("Response: {}", responseStr));
-            } catch(const std::exception& e) {
-                Logger::log(std::format("Internal Error: {}", e.what()), Logger::Level::ERROR, Logger::Importance::HIGH);
-            }
-        }
-
-        close(client_socket);
+        std::thread clientThread(handleClient, client_socket, std::ref(handleRequestService), clientAddress);
+        clientThread.detach();
     }
 
     close(server_socket);
