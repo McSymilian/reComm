@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     std::string dbPath = DEFAULT_DB_PATH;
     short verbalityLevel = DEFAULT_VERBALITY;
 
-    CLI::App app{"reComm :: UDP Server"};
+    CLI::App app{"reComm :: TCP Server"};
 
     app.add_option("-p,--port", port, "Port number")
             ->check(CLI::Range(1, 65535));
@@ -47,10 +47,17 @@ int main(int argc, char** argv) {
     localAddress.sin_port = htons(port);
     localAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    int server_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
     if(server_socket == -1) {
         Logger::log("Could not create socket", Logger::Level::ERROR);
+        exit(EXIT_FAILURE);
+    }
+
+    int opt = 1;
+    if(setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        Logger::log("Could not set socket options", Logger::Level::ERROR);
+        close(server_socket);
         exit(EXIT_FAILURE);
     }
 
@@ -60,7 +67,13 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
-    Logger::log(std::format("Serwer UPD nasłuchuje na porcie {}", port), Logger::Level::INFO, Logger::Importance::HIGH);
+    if(listen(server_socket, 5) == -1) {
+        Logger::log("Could not listen", Logger::Level::ERROR);
+        close(server_socket);
+        exit(EXIT_FAILURE);
+    }
+
+    Logger::log(std::format("Serwer TCP nasłuchuje na porcie {}", port), Logger::Level::INFO, Logger::Importance::HIGH);
     Logger::log(std::format("Źródło bazy danych {}", dbPath), Logger::Level::INFO, Logger::Importance::HIGH);
     Logger::log(std::format("Poziom rozmowności {}", verbalityLevel), Logger::Level::INFO, Logger::Importance::HIGH);
 
@@ -79,9 +92,15 @@ int main(int argc, char** argv) {
     char buff[4096];
 
     for(;;) {
+        int client_socket = accept(server_socket, (struct sockaddr*)&clientAddress, &clientAddressLen);
+
+        if(client_socket == -1) {
+            Logger::log("Could not accept connection", Logger::Level::ERROR);
+            continue;
+        }
+
         std::memset(buff, 0, sizeof(buff));
-        int n = recvfrom(server_socket, buff, sizeof(buff)-1, 0,
-                        (struct sockaddr*)&clientAddress, &clientAddressLen);
+        int n = recv(client_socket, buff, sizeof(buff)-1, 0);
 
         if(n > 0) {
             try {
@@ -96,15 +115,16 @@ int main(int argc, char** argv) {
 
                 json response = handleRequestService.handleRequest(request);
 
-                std::string responseStr = response.dump();
-                sendto(server_socket, responseStr.c_str(), responseStr.size(), 0,
-                      (struct sockaddr*)&clientAddress, clientAddressLen);
+                std::string responseStr = response.dump() + "\n";
+                send(client_socket, responseStr.c_str(), responseStr.size(), 0);
 
                 Logger::log(std::format("Response: {}", responseStr));
             } catch(const std::exception& e) {
                 Logger::log(std::format("Internal Error: {}", e.what()), Logger::Level::ERROR, Logger::Importance::HIGH);
             }
         }
+
+        close(client_socket);
     }
 
     close(server_socket);

@@ -21,7 +21,7 @@ public:
 
         std::optional<std::string> token = userService->registerUser(username, password);
         if(!token.has_value())
-            throw user_already_exists_error("Username is already taken");
+            throw user_already_exists_error();
 
         json response;
         response["token"] = token.value();
