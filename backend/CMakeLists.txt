@@ -15,25 +15,25 @@ message(STATUS "C++ Compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "C++ Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
 
 add_executable(reComm main.cpp
-        domain/user/User.h
-        domain/user/UserRepository.h
-        application/UserService.h
-        infrastructure/FileUserRepository.h
-        infrastructure/FileUserRepository.h
-        application/request_handlers/RequestHandleService.h
-        application/request_handlers/RequestService.h
-        application/request_handlers/RegisterRequestService.h
-        exceptions/unknown_method_error.h
-        utils/Logger.h
-        exceptions/user_already_exists_error.h
-        exceptions/bad_request_format_error.h
-        application/request_handlers/AuthRequestService.h
-        exceptions/invalid_credentials_error.h
-        application/JwtService.h
-        domain/friendship/Friendship.h
-        domain/friendship/FriendshipRepository.h
-        infrastructure/FileFriendshipRepository.h
-        application/FriendshipService.h)
+        src/domain/user/User.h
+        src/domain/user/UserRepository.h
+        src/application/UserService.h
+        src/infrastructure/FileUserRepository.h
+        src/infrastructure/FileUserRepository.h
+        src/application/request_handlers/RequestHandleService.h
+        src/application/request_handlers/RequestService.h
+        src/application/request_handlers/RegisterRequestService.h
+        src/exceptions/unknown_method_error.h
+        src/utils/Logger.h
+        src/exceptions/user_already_exists_error.h
+        src/exceptions/bad_request_format_error.h
+        src/application/request_handlers/AuthRequestService.h
+        src/exceptions/invalid_credentials_error.h
+        src/application/JwtService.h
+        src/domain/friendship/Friendship.h
+        src/domain/friendship/FriendshipRepository.h
+        src/infrastructure/FileFriendshipRepository.h
+        src/application/FriendshipService.h)
 
 include(FetchContent)
 set(JWT_BUILD_TESTS OFF)

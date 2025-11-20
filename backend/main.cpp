@@ -13,10 +13,10 @@
 #include <CLI/CLI.hpp>
 #include <nlohmann/json.hpp>
 
-#include "application/request_handlers/AuthRequestService.h"
-#include "application/request_handlers/RequestHandleService.h"
-#include "infrastructure/FileUserRepository.h"
-#include "application/UserService.h"
+#include "src/application/request_handlers/AuthRequestService.h"
+#include "src/application/request_handlers/RequestHandleService.h"
+#include "src/infrastructure/FileUserRepository.h"
+#include "src/application/UserService.h"
 
 using json = nlohmann::json;
 
