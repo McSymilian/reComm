@@ -162,22 +162,6 @@ Nieprawidłowe dane (401):
 }
 ```
 
-### Kody błędów
-
-| Kod | Znaczenie | Opis |
-|-----|-----------|------|
-| 200 | OK | Żądanie zakończone sukcesem |
-| 201 | Created | Zasób został utworzony |
-| 400 | Bad Request | Nieprawidłowy format żądania lub nieznana metoda |
-| 401 | Unauthorized | Nieprawidłowe dane uwierzytelniające |
-| 409 | Conflict | Konflikt zasobów (np. użytkownik już istnieje) |
-| 500 | Internal Server Error | Błąd wewnętrzny serwera |
-
-### Ogólne błędy
-
-**Nieprawidłowy format żądania:**
-```json
-{
   "code": 400,
   "message": "Bad request format"
 }
