@@ -1,7 +1,16 @@
 #pragma once
 #include "../domain/friendship/FriendshipRepository.h"
 #include "../domain/user/UserRepository.h"
+#include "../exceptions/user_not_found_error.h"
 #include <memory>
+
+#include "../exceptions/already_friends_error.h"
+#include "../exceptions/cannot_be_self_friend_error.h"
+#include "../exceptions/friendship_request_already_sent_error.h"
+#include "../exceptions/friendship_request_already_processed_error.h"
+#include "../exceptions/friendship_request_not_found_error.h"
+#include "../exceptions/friendship_request_process_error.h"
+#include "../exceptions/save_friendship_request_error.h"
 
 enum class FriendRequestResult {
     SUCCESS,
@@ -26,28 +35,31 @@ public:
                      std::shared_ptr<UserRepository> uRepo)
         : friendshipRepo(std::move(fRepo)), userRepo(std::move(uRepo)) {}
 
-    FriendRequestResult sendFriendRequest(const UUIDv4::UUID& requesterId,
-                                         const std::string& addresseeUsername) const {
+    void sendFriendRequest(
+        const UUIDv4::UUID& requesterId,
+        const std::string& addresseeUsername
+    ) const {
         if(!userRepo->exists(requesterId))
-            return FriendRequestResult::USER_NOT_FOUND;
+            throw user_not_found_error();
 
-        auto addressee = userRepo->findByUsername(addresseeUsername);
-        //todo refactor to exception driven workflow
+        const auto addressee = userRepo->findByUsername(addresseeUsername);
         if(!addressee.has_value())
-            return FriendRequestResult::USER_NOT_FOUND;
+            throw user_not_found_error();
 
         if(requesterId == addressee->uuid)
-            return FriendRequestResult::CANNOT_ADD_YOURSELF;
+           throw cannot_be_self_friend_error();
 
         if(friendshipRepo->areFriends(requesterId, addressee->uuid))
-            return FriendRequestResult::ALREADY_FRIENDS;
+            throw already_friends_error();
 
         if(friendshipRepo->find(requesterId, addressee->uuid))
-            return FriendRequestResult::ALREADY_PENDING;
-        //todo what if there is a pending request from the other side?
+            throw friendship_request_already_sent_error();
+
+        if (friendshipRepo->find(addressee->uuid, requesterId))
+            return acceptFriendRequest(requesterId, addressee->uuid);
 
         const auto now = std::chrono::system_clock::now();
-        Friendship friendship{
+        const Friendship friendship{
             requesterId,
             addressee->uuid,
             FriendshipStatus::PENDING,
@@ -55,37 +67,36 @@ public:
             now
         };
 
-        return friendshipRepo->save(friendship) 
-            ? FriendRequestResult::SUCCESS 
-            : FriendRequestResult::USER_NOT_FOUND;
+        if (!friendshipRepo->save(friendship))
+            throw save_friendship_request_error();
     }
 
-    AcceptRequestResult acceptFriendRequest(const UUIDv4::UUID& userId,
+    void acceptFriendRequest(const UUIDv4::UUID& userId,
                                            const UUIDv4::UUID& requesterId) const {
-        auto friendship = friendshipRepo->find(requesterId, userId);
+        const auto friendship = friendshipRepo->find(requesterId, userId);
         if(!friendship)
-            return AcceptRequestResult::REQUEST_NOT_FOUND;
+            throw friendship_request_not_found_error();
 
         if(friendship->status != FriendshipStatus::PENDING)
-            return AcceptRequestResult::ALREADY_PROCESSED;
+           throw friendship_request_already_processed_error();
 
-        return friendshipRepo->updateStatus(requesterId, userId, FriendshipStatus::ACCEPTED)
-            ? AcceptRequestResult::SUCCESS
-            : AcceptRequestResult::REQUEST_NOT_FOUND;
+        if (!friendshipRepo->updateStatus(requesterId, userId, FriendshipStatus::ACCEPTED))
+            throw friendship_request_process_error();
     }
 
-    AcceptRequestResult rejectFriendRequest(const UUIDv4::UUID& userId,
-                                           const UUIDv4::UUID& requesterId) const {
-        auto friendship = friendshipRepo->find(requesterId, userId);
+    void rejectFriendRequest(
+        const UUIDv4::UUID& userId,
+        const UUIDv4::UUID& requesterId
+    ) const {
+        const auto friendship = friendshipRepo->find(requesterId, userId);
         if(!friendship)
-            return AcceptRequestResult::REQUEST_NOT_FOUND;
+            throw friendship_request_not_found_error();
 
         if(friendship->status != FriendshipStatus::PENDING)
-            return AcceptRequestResult::ALREADY_PROCESSED;
+            throw friendship_request_already_processed_error();
 
-        return friendshipRepo->updateStatus(requesterId, userId, FriendshipStatus::REJECTED)
-            ? AcceptRequestResult::SUCCESS
-            : AcceptRequestResult::REQUEST_NOT_FOUND;
+        if (!friendshipRepo->updateStatus(requesterId, userId, FriendshipStatus::REJECTED))
+            throw friendship_request_process_error();
     }
 
     std::vector<UUIDv4::UUID> getFriends(const UUIDv4::UUID& userId) const {

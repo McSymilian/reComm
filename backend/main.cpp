@@ -13,16 +13,18 @@
 #include <CLI/CLI.hpp>
 #include <nlohmann/json.hpp>
 
+#include "src/application/FriendshipService.h"
 #include "src/application/request_handlers/AuthRequestService.h"
 #include "src/application/request_handlers/RequestHandleService.h"
 #include "src/infrastructure/FileUserRepository.h"
 #include "src/application/UserService.h"
+#include "src/infrastructure/FileFriendshipRepository.h"
 
 using json = nlohmann::json;
 
 constexpr int DEFAULT_PORT = 8080;
 constexpr int DEFAULT_VERBALITY = 10;
-const std::string DEFAULT_DB_PATH = "users.json";
+const std::string DEFAULT_DB_PATH = "db";
 
 void handleClient(int client_socket, const RequestHandleService& handleRequestService, const sockaddr_in& clientAddress) {
     char buff[4096] = {};
@@ -104,7 +106,7 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
-    if(bind(server_socket, reinterpret_cast<struct sockaddr *>(&localAddress), sizeof(localAddress)) == -1) {
+    if(bind(server_socket, reinterpret_cast<sockaddr *>(&localAddress), sizeof(localAddress)) == -1) {
         Logger::log("Could not bind", Logger::Level::ERROR, Logger::Importance::MEDIUM);
         close(server_socket);
         exit(EXIT_FAILURE);
@@ -116,13 +118,11 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
-    Logger::log(std::format("Serwer TCP nasłuchuje na porcie {}", port), Logger::Level::INFO, Logger::Importance::HIGH);
-    Logger::log(std::format("Źródło bazy danych {}", dbPath), Logger::Level::INFO, Logger::Importance::HIGH);
-    Logger::log(std::format("Poziom rozmowności {}", verbalityLevel), Logger::Level::INFO, Logger::Importance::HIGH);
-
-    const auto repository = std::make_shared<FileUserRepository>(dbPath);
+    const auto friendship_repository = std::make_shared<FileFriendshipRepository>(dbPath);
+    const auto user_repository = std::make_shared<FileUserRepository>(dbPath);
     const auto jwtService = std::make_shared<JwtService>("super_tajne_hasło_do_jwt_nie_zmienie_w_produkcji");
-    const auto userService = std::make_shared<UserService>(repository, jwtService);
+    const auto userService = std::make_shared<UserService>(user_repository, jwtService);
+    const auto friendshipService = std::make_shared<FriendshipService>(friendship_repository, user_repository);
 
     const auto authRequestService = std::make_shared<AuthRequestService>(userService);
     const auto registerRequestService = std::make_shared<RegisterRequestService>(userService);
@@ -131,6 +131,11 @@ int main(int argc, char** argv) {
             {authRequestService->getHandledMethodName(), authRequestService}
     };
     const auto handleRequestService = RequestHandleService(requestServices);
+
+    Logger::log(std::format("Serwer TCP nasłuchuje na porcie {}", port), Logger::Level::INFO, Logger::Importance::HIGH);
+    Logger::log(std::format("Źródło bazy danych {}", dbPath), Logger::Level::INFO, Logger::Importance::HIGH);
+    Logger::log(std::format("Poziom rozmowności {}", verbalityLevel), Logger::Level::INFO, Logger::Importance::HIGH);
+
 
     for(;;) {
         int client_socket = accept(server_socket, reinterpret_cast<struct sockaddr *>(&clientAddress), &clientAddressLen);

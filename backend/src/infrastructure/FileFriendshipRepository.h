@@ -14,10 +14,10 @@
 #endif
 
 class FileFriendshipRepository final : public FriendshipRepository {
-private:
     fs::path filePath;
+    static constexpr std::string DB_FILE = "friendship.json";
 
-    static std::string statusToString(FriendshipStatus status) {
+    static std::string statusToString(const FriendshipStatus status) {
         switch(status) {
             case FriendshipStatus::PENDING: return "PENDING";
             case FriendshipStatus::ACCEPTED: return "ACCEPTED";
@@ -82,8 +82,12 @@ private:
     }
 
 public:
-    explicit FileFriendshipRepository(const std::string& path)
-        : filePath(path) {}
+    explicit FileFriendshipRepository(const std::string& path) {
+        if (path.back() == '/')
+            filePath = path + DB_FILE;
+        else
+            filePath = path + '/' + DB_FILE;
+    }
 
     bool save(const Friendship& friendship) override {
         auto data = loadData();

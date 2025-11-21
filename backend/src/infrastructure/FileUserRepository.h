@@ -15,6 +15,7 @@
 
 class FileUserRepository final : public UserRepository {
     fs::path filePath;
+    static constexpr std::string DB_FILE = "users.json";
     
     nlohmann::json loadData() const {
         if(!fs::exists(filePath)) {
@@ -33,8 +34,12 @@ class FileUserRepository final : public UserRepository {
     }
     
 public:
-    explicit FileUserRepository(const std::string& path) 
-        : filePath(path) {}
+    explicit FileUserRepository(const std::string& path) {
+        if (path.back() == '/')
+            filePath = path + DB_FILE;
+        else
+            filePath = path + '/' + DB_FILE;
+    }
     
     bool save(const User& user) override {
         auto data = loadData();
