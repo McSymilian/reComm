@@ -162,22 +162,6 @@ Nieprawidłowe dane (401):
 }
 ```
 
-#### 3. Funkcjonalność Friendship
-
-System wspiera pełną funkcjonalność zarządzania przyjaźniami:
-
-- **SEND_FRIEND_REQUEST** - Wysyłanie zaproszenia do znajomych
-- **ACCEPT_FRIEND_REQUEST** - Akceptowanie zaproszenia
-- **REJECT_FRIEND_REQUEST** - Odrzucanie zaproszenia
-- **GET_FRIENDS** - Pobieranie listy znajomych
-- **GET_PENDING_REQUESTS** - Pobieranie oczekujących zaproszeń
-
-**Szczegółowa dokumentacja:**
-- [Dokumentacja API Friendship](FRIENDSHIP_API.md)
-- [Przykłady użycia](FRIENDSHIP_EXAMPLES.md)
-- [Podsumowanie implementacji](IMPLEMENTATION_SUMMARY.md)
-- [Przewodnik testowania](TESTING.md)
-
 ### Kody błędów
 
 | Kod | Znaczenie | Opis |
