@@ -12,7 +12,6 @@
 
 using json = nlohmann::json;
 
-// Wysyłanie zaproszenia do znajomych
 class SendFriendRequestService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
     const std::shared_ptr<JwtService> jwtService;
@@ -46,14 +45,13 @@ public:
         if (!jwtService->verifyToken(token))
             throw invalid_token_error();
 
-        auto requesterUuid = JwtService::getUuidFromToken(token);
+        const auto requesterUuid = JwtService::getUuidFromToken(token);
         if (!requesterUuid.has_value())
             throw invalid_token_error();
 
         friendshipService->sendFriendRequest(requesterUuid.value(), addresseeUsername);
 
-        // Pobierz dane odbiorcy i wyślij notyfikację
-        auto addressee = userService->getUserByUsername(addresseeUsername);
+        const auto addressee = userService->getUserByUsername(addresseeUsername);
         if (addressee.has_value()) {
             json notification;
             notification["type"] = "FRIEND_REQUEST";
@@ -70,7 +68,6 @@ public:
     }
 };
 
-// Akceptowanie zaproszenia do znajomych
 class AcceptFriendRequestService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
     const std::shared_ptr<JwtService> jwtService;
@@ -98,11 +95,11 @@ public:
         if (!jwtService->verifyToken(token))
             throw invalid_token_error();
 
-        auto userUuid = JwtService::getUuidFromToken(token);
+        const auto userUuid = JwtService::getUuidFromToken(token);
         if (!userUuid.has_value())
             throw invalid_token_error();
 
-        auto requesterUuid = UUIDv4::UUID::fromStrFactory(requesterUuidStr);
+        const auto requesterUuid = UUIDv4::UUID::fromStrFactory(requesterUuidStr);
 
         friendshipService->acceptFriendRequest(userUuid.value(), requesterUuid);
 
@@ -113,7 +110,6 @@ public:
     }
 };
 
-// Odrzucanie zaproszenia do znajomych
 class RejectFriendRequestService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
     const std::shared_ptr<JwtService> jwtService;
@@ -141,11 +137,11 @@ public:
         if (!jwtService->verifyToken(token))
             throw invalid_token_error();
 
-        auto userUuid = JwtService::getUuidFromToken(token);
+        const auto userUuid = JwtService::getUuidFromToken(token);
         if (!userUuid.has_value())
             throw invalid_token_error();
 
-        auto requesterUuid = UUIDv4::UUID::fromStrFactory(requesterUuidStr);
+        const auto requesterUuid = UUIDv4::UUID::fromStrFactory(requesterUuidStr);
 
         friendshipService->rejectFriendRequest(userUuid.value(), requesterUuid);
 
@@ -156,7 +152,6 @@ public:
     }
 };
 
-// Pobieranie listy znajomych
 class GetFriendsService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
     const std::shared_ptr<JwtService> jwtService;
@@ -181,11 +176,11 @@ public:
         if (!jwtService->verifyToken(token))
             throw invalid_token_error();
 
-        auto userUuid = JwtService::getUuidFromToken(token);
+        const auto userUuid = JwtService::getUuidFromToken(token);
         if (!userUuid.has_value())
             throw invalid_token_error();
 
-        auto friends = friendshipService->getFriends(userUuid.value());
+        const auto friends = friendshipService->getFriends(userUuid.value());
 
         json response;
         response["code"] = 200;
@@ -200,7 +195,6 @@ public:
     }
 };
 
-// Pobieranie oczekujących zaproszeń
 class GetPendingRequestsService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
     const std::shared_ptr<JwtService> jwtService;
@@ -225,11 +219,11 @@ public:
         if (!jwtService->verifyToken(token))
             throw invalid_token_error();
 
-        auto userUuid = JwtService::getUuidFromToken(token);
+        const auto userUuid = JwtService::getUuidFromToken(token);
         if (!userUuid.has_value())
             throw invalid_token_error();
 
-        auto pendingRequests = friendshipService->getPendingRequests(userUuid.value());
+        const auto pendingRequests = friendshipService->getPendingRequests(userUuid.value());
 
         json response;
         response["code"] = 200;
@@ -247,4 +241,3 @@ public:
         return response;
     }
 };
-
