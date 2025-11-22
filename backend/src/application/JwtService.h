@@ -36,7 +36,7 @@ public:
             const auto decoded = jwt::decode(token);
             verifier.verify(decoded);
             return true;
-        } catch(const std::exception&) {
+        } catch(const jwt::error::token_verification_exception&) {
             return false;
         }
     }

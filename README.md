@@ -396,6 +396,99 @@ Nieprawidłowy token (401):
 }
 ```
 
+### Powiadomienia Push (Server-Sent Notifications)
+
+Serwer automatycznie wysyła powiadomienia do zalogowanych użytkowników w czasie rzeczywistym. Powiadomienia są wysyłane przez to samo połączenie TCP, które jest używane do komunikacji z API.
+
+#### Jak działają powiadomienia:
+
+1. **Użytkownik online** - otrzymuje powiadomienie natychmiast przez otwarty socket
+2. **Użytkownik offline** - powiadomienie jest zapisywane i wysyłane przy następnym logowaniu
+
+#### Format powiadomień:
+
+Po zalogowaniu (AUTH lub REGISTER), klient może otrzymywać powiadomienia push w formacie JSON:
+
+**Powiadomienie o zaproszeniu do znajomych:**
+```json
+{
+  "type": "FRIEND_REQUEST",
+  "from": "uuid_nadawcy",
+  "message": "You have a new friend request"
+}
+```
+
+#### Implementacja po stronie klienta:
+
+Klient musi:
+1. Utrzymywać otwarte połączenie TCP po zalogowaniu
+2. Nasłuchiwać na dane z socketa w osobnym wątku/asynchronicznie
+3. Odróżniać powiadomienia od odpowiedzi na żądania (sprawdzając pole `type`)
+
+**Przykład (Python):**
+```python
+import socket
+import json
+import threading
+
+def receive_messages(sock):
+    """Wątek odbierający wiadomości od serwera"""
+    while True:
+        try:
+            data = sock.recv(4096).decode()
+            if not data:
+                break
+            
+            message = json.loads(data)
+            
+            # Sprawdź czy to powiadomienie push
+            if message.get("type") == "FRIEND_REQUEST":
+                print(f"🔔 Nowe zaproszenie od: {message['from']}")
+            elif message.get("code"):
+                # To odpowiedź na żądanie API
+                print(f"Odpowiedź: {message}")
+        except Exception as e:
+            print(f"Błąd: {e}")
+            break
+
+# Nawiązanie połączenia
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect(('localhost', 8080))
+
+# Uruchomienie wątku dla odbierania wiadomości
+receiver_thread = threading.Thread(target=receive_messages, args=(sock,), daemon=True)
+receiver_thread.start()
+
+# Logowanie
+login_request = {
+    "method": "AUTH",
+    "body": {"username": "jan", "password": "pass123"}
+}
+sock.sendall((json.dumps(login_request) + "\n").encode())
+
+# Po zalogowaniu:
+# 1. Otrzymasz odpowiedź na logowanie z tokenem
+# 2. Otrzymasz wszystkie zaległe powiadomienia (jeśli były)
+# 3. Będziesz otrzymywać powiadomienia w czasie rzeczywistym
+
+# Teraz możesz wysyłać kolejne żądania przez ten sam socket
+# i jednocześnie odbierać powiadomienia
+```
+
+#### Typy powiadomień:
+
+| Typ | Opis | Kiedy wysyłane |
+|-----|------|----------------|
+| `FRIEND_REQUEST` | Zaproszenie do znajomych | Gdy ktoś wyśle zaproszenie |
+
+#### Ważne informacje:
+
+- Połączenie TCP pozostaje otwarte po zalogowaniu
+- Klient może wysyłać wiele żądań przez to samo połączenie
+- Serwer może w dowolnym momencie wysłać powiadomienie push
+- Zaległe powiadomienia są wysyłane automatycznie po zalogowaniu
+- Powiadomienia są usuwane z kolejki po wysłaniu
+
 ### Ogólne odpowiedzi błędów
 
 **Brakujące pole wymagane (400):**
@@ -437,3 +530,72 @@ Nieprawidłowy token (401):
 - CMake: 3.16+
 - Make
 - OpenSSL: 1.1.1+ (biblioteki deweloperskie)
+
+## Architektura systemu powiadomień
+
+### Komponenty:
+
+#### 1. **ConnectionManager** (`src/infrastructure/ConnectionManager.h`)
+Zarządza aktywnymi połączeniami TCP klientów.
+- Przechowuje mapę: `userId → socket`
+- Thread-safe dzięki mutex'om
+- Umożliwia wysyłanie wiadomości do konkretnego użytkownika
+
+#### 2. **NotificationService** (`src/application/NotificationService.h`)
+Logika biznesowa dla powiadomień.
+- Sprawdza czy użytkownik jest online
+- Wysyła powiadomienie live lub zapisuje do kolejki
+- Wysyła zaległe powiadomienia przy logowaniu
+
+#### 3. **NotificationRepository** (`src/domain/notification/NotificationRepository.h`)
+Interfejs dla przechowywania zaległych powiadomień.
+
+#### 4. **FileNotificationRepository** (`src/infrastructure/FileNotificationRepository.h`)
+Implementacja zapisująca powiadomienia do plików JSON.
+- Format: `db/notifications_{userId}.json`
+- Thread-safe operacje na plikach
+
+### Przepływ danych:
+
+```
+Użytkownik A wysyła zaproszenie do Użytkownika B
+            ↓
+  SendFriendRequestService
+            ↓
+    NotificationService
+            ↓
+        ┌───────────────────┐
+        │ Czy B jest online? │
+        └────────┬───────────┘
+                 │
+        ┌────────┴────────┐
+        │                 │
+       TAK               NIE
+        │                 │
+  ConnectionManager   FileNotificationRepository
+        │                 │
+  Wysłanie przez     Zapisanie do pliku
+     socket             (kolejka)
+        │                 │
+        ↓                 ↓
+  B otrzymuje           B otrzyma przy
+  natychmiast          następnym logowaniu
+```
+
+### Bezpieczeństwo wątkowe:
+
+- **ConnectionManager**: mutex na mapę połączeń + mutex per-connection
+- **FileNotificationRepository**: mutex na operacje plikowe
+- **NotificationService**: używa thread-safe komponentów
+
+### Persistent Connections:
+
+Serwer utrzymuje otwarte połączenia TCP z klientami:
+- Jedno połączenie obsługuje wiele żądań API
+- Połączenie pozostaje otwarte po zalogowaniu
+- Serwer może wysyłać powiadomienia w dowolnym momencie
+- Połączenie zamykane tylko przy:
+  - Rozłączeniu klienta
+  - Błędzie sieci
+  - Wewnętrznym błędzie serwera
+

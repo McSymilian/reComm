@@ -57,6 +57,10 @@ public:
         return jwtService->generateToken(user->uuid.str());
     }
 
+    std::optional<User> getUserByUsername(const std::string& username) {
+        return repository->findByUsername(username);
+    }
+
     std::vector<std::string> getFriends(const std::string& username) {
         // TODO: Implementacja logiki znajomych
         return {};

@@ -20,6 +20,9 @@
 #include "src/infrastructure/FileUserRepository.h"
 #include "src/application/UserService.h"
 #include "src/infrastructure/FileFriendshipRepository.h"
+#include "src/infrastructure/ConnectionManager.h"
+#include "src/infrastructure/FileNotificationRepository.h"
+#include "src/application/NotificationService.h"
 
 using json = nlohmann::json;
 
@@ -27,41 +30,83 @@ constexpr int DEFAULT_PORT = 8080;
 constexpr int DEFAULT_VERBALITY = 10;
 const std::string DEFAULT_DB_PATH = "db";
 
-void handleClient(const int client_socket, const RequestHandleService& handleRequestService, const sockaddr_in& clientAddress) {
-    char buff[4096] = {};
-
+void handleClient(
+    const int client_socket,
+    const RequestHandleService& handleRequestService,
+    const std::shared_ptr<ConnectionManager>& connectionManager,
+    const std::shared_ptr<NotificationService>& notificationService,
+    const sockaddr_in& clientAddress
+) {
     char clientIP[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &clientAddress.sin_addr, clientIP, INET_ADDRSTRLEN);
     int clientPort = ntohs(clientAddress.sin_port);
 
     Logger::log(std::format("Nowe połączenie z {}:{}", clientIP, clientPort), Logger::Level::INFO, Logger::Importance::LOW);
 
-    ssize_t n = recv(client_socket, buff, sizeof(buff)-1, 0);
+    bool shouldClose = false;
+    std::optional<UUIDv4::UUID> authenticatedUserId;
 
-    if(n > 0) {
-        try {
-            json request;
+    while(!shouldClose) {
+        char buff[4096] = {};
+        ssize_t n = recv(client_socket, buff, sizeof(buff)-1, 0);
+
+        if(n > 0) {
             try {
-                request = json::parse(buff);
-            } catch(const std::exception&) {
-                request = json::parse("{}");
+                json request;
+                try {
+                    request = json::parse(buff);
+                } catch(const std::exception&) {
+                    request = json::parse("{}");
+                }
+
+                Logger::log(std::format("Request from {}:{}: {}", clientIP, clientPort, request.dump()), Logger::Level::INFO, Logger::Importance::LOW);
+
+                const json response = handleRequestService.handleRequest(request);
+
+                // Jeśli to była udana autentykacja lub rejestracja, zarejestruj połączenie
+                if(response.contains("code") && response["code"] == 200 && response.contains("token")) {
+                    auto userId = JwtService::getUuidFromToken(response["token"]);
+                    if(userId.has_value()) {
+                        authenticatedUserId = userId.value();
+                        connectionManager->registerConnection(authenticatedUserId.value(), client_socket);
+
+                        // Wyślij zaległe notyfikacje
+                        notificationService->sendPendingNotifications(authenticatedUserId.value());
+                    }
+                } else if (response.contains("code") && response["code"] == 201 && response.contains("token")) {
+                    // Nowa rejestracja
+                    auto userId = JwtService::getUuidFromToken(response["token"]);
+                    if(userId.has_value()) {
+                        authenticatedUserId = userId.value();
+                        connectionManager->registerConnection(authenticatedUserId.value(), client_socket);
+                    }
+                }
+
+                std::string responseStr = response.dump() + "\n";
+                ssize_t sent = send(client_socket, responseStr.c_str(), responseStr.size(), 0);
+
+                if(sent == -1) {
+                    Logger::log(std::format("Error sending response to {}:{}", clientIP, clientPort), Logger::Level::ERROR, Logger::Importance::MEDIUM);
+                    shouldClose = true;
+                } else {
+                    Logger::log(std::format("Response to {}:{}: {}", clientIP, clientPort, responseStr), Logger::Level::INFO, Logger::Importance::LOW);
+                }
+            } catch(const std::exception& e) {
+                Logger::log(std::format("Internal error for {}:{}: {}", clientIP, clientPort, e.what()), Logger::Level::ERROR, Logger::Importance::HIGH);
+                shouldClose = true;
             }
-
-            Logger::log(std::format("Request from {}:{}: {}", clientIP, clientPort, request.dump()), Logger::Level::INFO, Logger::Importance::LOW);
-
-            const json response = handleRequestService.handleRequest(request);
-
-            std::string responseStr = response.dump() + "\n";
-            send(client_socket, responseStr.c_str(), responseStr.size(), 0);
-
-            Logger::log(std::format("Response to {}:{}: {}", clientIP, clientPort, responseStr), Logger::Level::INFO, Logger::Importance::LOW);
-        } catch(const std::exception& e) {
-            Logger::log(std::format("Internal Error for {}:{}: {}", clientIP, clientPort, e.what()), Logger::Level::ERROR, Logger::Importance::HIGH);
+        } else if(n == 0) {
+            Logger::log(std::format("Client {}:{} disconnected", clientIP, clientPort), Logger::Level::INFO, Logger::Importance::LOW);
+            shouldClose = true;
+        } else {
+            Logger::log(std::format("Error receiving data from {}:{}", clientIP, clientPort), Logger::Level::ERROR, Logger::Importance::MEDIUM);
+            shouldClose = true;
         }
-    } else if(n == 0) {
-        Logger::log(std::format("Client {}:{} disconnected", clientIP, clientPort), Logger::Level::INFO, Logger::Importance::LOW);
-    } else {
-        Logger::log(std::format("Error receiving data from {}:{}", clientIP, clientPort), Logger::Level::ERROR, Logger::Importance::MEDIUM);
+    }
+
+    // Wyrejestruj połączenie jeśli było zalogowane
+    if(authenticatedUserId.has_value()) {
+        connectionManager->unregisterConnection(authenticatedUserId.value());
     }
 
     close(client_socket);
@@ -121,13 +166,16 @@ int main(int argc, char** argv) {
 
     const auto friendship_repository = std::make_shared<FileFriendshipRepository>(dbPath);
     const auto user_repository = std::make_shared<FileUserRepository>(dbPath);
+    const auto notification_repository = std::make_shared<FileNotificationRepository>(dbPath);
+    const auto connectionManager = std::make_shared<ConnectionManager>();
     const auto jwtService = std::make_shared<JwtService>("super_tajne_hasło_do_jwt_nie_zmienie_w_produkcji");
     const auto userService = std::make_shared<UserService>(user_repository, jwtService);
     const auto friendshipService = std::make_shared<FriendshipService>(friendship_repository, user_repository);
+    const auto notificationService = std::make_shared<NotificationService>(notification_repository, connectionManager);
 
     const auto authRequestService = std::make_shared<AuthRequestService>(userService);
     const auto registerRequestService = std::make_shared<RegisterRequestService>(userService);
-    const auto sendFriendRequestService = std::make_shared<SendFriendRequestService>(friendshipService, jwtService);
+    const auto sendFriendRequestService = std::make_shared<SendFriendRequestService>(friendshipService, jwtService, userService, notificationService);
     const auto acceptFriendRequestService = std::make_shared<AcceptFriendRequestService>(friendshipService, jwtService);
     const auto rejectFriendRequestService = std::make_shared<RejectFriendRequestService>(friendshipService, jwtService);
     const auto getFriendsService = std::make_shared<GetFriendsService>(friendshipService, jwtService);
@@ -157,7 +205,7 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        std::thread clientThread(handleClient, client_socket, std::ref(handleRequestService), clientAddress);
+        std::thread clientThread(handleClient, client_socket, std::ref(handleRequestService), connectionManager, notificationService, clientAddress);
         clientThread.detach();
     }
 

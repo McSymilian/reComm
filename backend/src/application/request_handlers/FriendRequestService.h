@@ -5,6 +5,8 @@
 #include "RequestService.h"
 #include "../FriendshipService.h"
 #include "../JwtService.h"
+#include "../UserService.h"
+#include "../NotificationService.h"
 #include "../../exceptions/invalid_token_error.h"
 #include "../../exceptions/missing_required_field_error.h"
 
@@ -14,13 +16,19 @@ using json = nlohmann::json;
 class SendFriendRequestService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
     const std::shared_ptr<JwtService> jwtService;
+    const std::shared_ptr<UserService> userService;
+    const std::shared_ptr<NotificationService> notificationService;
 
 public:
     explicit SendFriendRequestService(
         std::shared_ptr<FriendshipService> friendshipService,
-        std::shared_ptr<JwtService> jwtService
+        std::shared_ptr<JwtService> jwtService,
+        std::shared_ptr<UserService> userService,
+        std::shared_ptr<NotificationService> notificationService
     ) : friendshipService(std::move(friendshipService)),
-        jwtService(std::move(jwtService)) {}
+        jwtService(std::move(jwtService)),
+        userService(std::move(userService)),
+        notificationService(std::move(notificationService)) {}
 
     std::string getHandledMethodName() override {
         return "SEND_FRIEND_REQUEST";
@@ -43,6 +51,17 @@ public:
             throw invalid_token_error();
 
         friendshipService->sendFriendRequest(requesterUuid.value(), addresseeUsername);
+
+        // Pobierz dane odbiorcy i wyślij notyfikację
+        auto addressee = userService->getUserByUsername(addresseeUsername);
+        if (addressee.has_value()) {
+            json notification;
+            notification["type"] = "FRIEND_REQUEST";
+            notification["from"] = requesterUuid.value().str();
+            notification["message"] = "You have a new friend request";
+
+            notificationService->sendNotification(addressee.value().uuid, notification);
+        }
 
         json response;
         response["code"] = 200;
