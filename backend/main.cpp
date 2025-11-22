@@ -15,6 +15,7 @@
 
 #include "src/application/FriendshipService.h"
 #include "src/application/request_handlers/AuthRequestService.h"
+#include "src/application/request_handlers/FriendRequestService.h"
 #include "src/application/request_handlers/RequestHandleService.h"
 #include "src/infrastructure/FileUserRepository.h"
 #include "src/application/UserService.h"
@@ -26,7 +27,7 @@ constexpr int DEFAULT_PORT = 8080;
 constexpr int DEFAULT_VERBALITY = 10;
 const std::string DEFAULT_DB_PATH = "db";
 
-void handleClient(int client_socket, const RequestHandleService& handleRequestService, const sockaddr_in& clientAddress) {
+void handleClient(const int client_socket, const RequestHandleService& handleRequestService, const sockaddr_in& clientAddress) {
     char buff[4096] = {};
 
     char clientIP[INET_ADDRSTRLEN];
@@ -126,9 +127,20 @@ int main(int argc, char** argv) {
 
     const auto authRequestService = std::make_shared<AuthRequestService>(userService);
     const auto registerRequestService = std::make_shared<RegisterRequestService>(userService);
+    const auto sendFriendRequestService = std::make_shared<SendFriendRequestService>(friendshipService, jwtService);
+    const auto acceptFriendRequestService = std::make_shared<AcceptFriendRequestService>(friendshipService, jwtService);
+    const auto rejectFriendRequestService = std::make_shared<RejectFriendRequestService>(friendshipService, jwtService);
+    const auto getFriendsService = std::make_shared<GetFriendsService>(friendshipService, jwtService);
+    const auto getPendingRequestsService = std::make_shared<GetPendingRequestsService>(friendshipService, jwtService);
+
     const std::unordered_map<std::string, std::shared_ptr<RequestService>> requestServices {
             {registerRequestService->getHandledMethodName(), registerRequestService},
-            {authRequestService->getHandledMethodName(), authRequestService}
+            {authRequestService->getHandledMethodName(), authRequestService},
+            {sendFriendRequestService->getHandledMethodName(), sendFriendRequestService},
+            {acceptFriendRequestService->getHandledMethodName(), acceptFriendRequestService},
+            {rejectFriendRequestService->getHandledMethodName(), rejectFriendRequestService},
+            {getFriendsService->getHandledMethodName(), getFriendsService},
+            {getPendingRequestsService->getHandledMethodName(), getPendingRequestsService}
     };
     const auto handleRequestService = RequestHandleService(requestServices);
 

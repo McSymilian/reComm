@@ -162,6 +162,253 @@ Nieprawidłowe dane (401):
 }
 ```
 
+#### 3. SEND_FRIEND_REQUEST - Wysłanie zaproszenia do znajomych
+
+**Żądanie:**
+```json
+{
+  "method": "SEND_FRIEND_REQUEST",
+  "body": {
+    "token": "token_autentykacji",
+    "addresseeUsername": "nazwa_uzytkownika_odbiorcy"
+  }
+}
+```
+
+**Odpowiedzi:**
+
+Sukces (200):
+```json
+{
+  "code": 200,
+  "message": "Friend request sent successfully"
+}
+```
+
+Nieprawidłowy token (401):
+```json
+{
+  "code": 401,
+  "message": "Invalid or expired token"
+}
+```
+
+Użytkownik nie znaleziony (404):
+```json
+{
+  "code": 404,
+  "message": "User not found"
+}
+```
+
+Próba dodania siebie (400):
+```json
+{
+  "code": 400,
+  "message": "Cannot add yourself as a friend"
+}
+```
+
+Już są znajomymi (409):
+```json
+{
+  "code": 409,
+  "message": "Accounts are already friends"
+}
+```
+
+Zaproszenie już wysłane (409):
+```json
+{
+  "code": 409,
+  "message": "Friend request already sent"
+}
+```
+
+#### 4. ACCEPT_FRIEND_REQUEST - Akceptowanie zaproszenia do znajomych
+
+**Żądanie:**
+```json
+{
+  "method": "ACCEPT_FRIEND_REQUEST",
+  "body": {
+    "token": "token_autentykacji",
+    "requesterUuid": "uuid_uzytkownika_wysylajacego"
+  }
+}
+```
+
+**Odpowiedzi:**
+
+Sukces (200):
+```json
+{
+  "code": 200,
+  "message": "Friend request accepted"
+}
+```
+
+Nieprawidłowy token (401):
+```json
+{
+  "code": 401,
+  "message": "Invalid or expired token"
+}
+```
+
+Zaproszenie nie znalezione (404):
+```json
+{
+  "code": 404,
+  "message": "Friend request not found"
+}
+```
+
+Zaproszenie już przetworzone (409):
+```json
+{
+  "code": 409,
+  "message": "Friend request already processed"
+}
+```
+
+#### 5. REJECT_FRIEND_REQUEST - Odrzucenie zaproszenia do znajomych
+
+**Żądanie:**
+```json
+{
+  "method": "REJECT_FRIEND_REQUEST",
+  "body": {
+    "token": "token_autentykacji",
+    "requesterUuid": "uuid_uzytkownika_wysylajacego"
+  }
+}
+```
+
+**Odpowiedzi:**
+
+Sukces (200):
+```json
+{
+  "code": 200,
+  "message": "Friend request rejected"
+}
+```
+
+Nieprawidłowy token (401):
+```json
+{
+  "code": 401,
+  "message": "Invalid or expired token"
+}
+```
+
+Zaproszenie nie znalezione (404):
+```json
+{
+  "code": 404,
+  "message": "Friend request not found"
+}
+```
+
+Zaproszenie już przetworzone (409):
+```json
+{
+  "code": 409,
+  "message": "Friend request already processed"
+}
+```
+
+#### 6. GET_FRIENDS - Pobieranie listy znajomych
+
+**Żądanie:**
+```json
+{
+  "method": "GET_FRIENDS",
+  "body": {
+    "token": "token_autentykacji"
+  }
+}
+```
+
+**Odpowiedzi:**
+
+Sukces (200):
+```json
+{
+  "code": 200,
+  "message": "Friends retrieved successfully",
+  "friends": [
+    "uuid_znajomego_1",
+    "uuid_znajomego_2",
+    "uuid_znajomego_3"
+  ]
+}
+```
+
+Nieprawidłowy token (401):
+```json
+{
+  "code": 401,
+  "message": "Invalid or expired token"
+}
+```
+
+#### 7. GET_PENDING_REQUESTS - Pobieranie oczekujących zaproszeń
+
+**Żądanie:**
+```json
+{
+  "method": "GET_PENDING_REQUESTS",
+  "body": {
+    "token": "token_autentykacji"
+  }
+}
+```
+
+**Odpowiedzi:**
+
+Sukces (200):
+```json
+{
+  "code": 200,
+  "message": "Pending requests retrieved successfully",
+  "pendingRequests": [
+    {
+      "requesterId": "uuid_nadawcy",
+      "addresseeId": "uuid_odbiorcy",
+      "status": 0
+    }
+  ]
+}
+```
+
+**Uwaga:** Status przyjmuje wartości:
+- `0` - PENDING (oczekujące)
+- `1` - ACCEPTED (zaakceptowane)
+- `2` - REJECTED (odrzucone)
+
+Nieprawidłowy token (401):
+```json
+{
+  "code": 401,
+  "message": "Invalid or expired token"
+}
+```
+
+### Ogólne odpowiedzi błędów
+
+**Brakujące pole wymagane (400):**
+```json
+{
+  "code": 400,
+  "message": "Missing required field: nazwa_pola"
+}
+```
+
+**Zły format żądania (400):**
+```json
+{
   "code": 400,
   "message": "Bad request format"
 }
