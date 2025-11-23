@@ -13,6 +13,8 @@ struct ClientConnection {
     int socket;
     UUIDv4::UUID userId;
     std::mutex sendMutex;
+
+    ClientConnection() : socket(-1) {}
 };
 
 class ConnectionManager {
@@ -20,10 +22,12 @@ class ConnectionManager {
     mutable std::mutex connectionsMutex;
 
 public:
-    void registerConnection(const UUIDv4::UUID& userId, int socket) {
-        std::lock_guard<std::mutex> lock(connectionsMutex);
+    ConnectionManager() {}
 
-        auto connection = std::make_shared<ClientConnection>();
+    void registerConnection(const UUIDv4::UUID& userId, const int socket) {
+        std::lock_guard lock(connectionsMutex);
+
+        const auto connection = std::make_shared<ClientConnection>();
         connection->socket = socket;
         connection->userId = userId;
 
@@ -32,7 +36,7 @@ public:
     }
 
     void unregisterConnection(const UUIDv4::UUID& userId) {
-        std::lock_guard<std::mutex> lock(connectionsMutex);
+        std::lock_guard lock(connectionsMutex);
         connections.erase(userId.str());
         Logger::log(std::format("Unregistered connection for user {}", userId.str()), Logger::Level::INFO, Logger::Importance::LOW);
     }
@@ -41,7 +45,7 @@ public:
         std::shared_ptr<ClientConnection> connection;
 
         {
-            std::lock_guard<std::mutex> lock(connectionsMutex);
+            std::lock_guard lock(connectionsMutex);
             auto it = connections.find(userId.str());
             if(it == connections.end()) {
                 return false;
@@ -49,10 +53,10 @@ public:
             connection = it->second;
         }
 
-        std::lock_guard<std::mutex> sendLock(connection->sendMutex);
+        std::lock_guard sendLock(connection->sendMutex);
 
         std::string notificationStr = notification.dump() + "\n";
-        ssize_t sent = send(connection->socket, notificationStr.c_str(), notificationStr.size(), 0);
+        const ssize_t sent = send(connection->socket, notificationStr.c_str(), notificationStr.size(), 0);
 
         if(sent == -1) {
             Logger::log(std::format("Failed to send notification to user {}", userId.str()), Logger::Level::WARNING, Logger::Importance::MEDIUM);
@@ -64,8 +68,8 @@ public:
     }
 
     bool isUserConnected(const UUIDv4::UUID& userId) const {
-        std::lock_guard<std::mutex> lock(connectionsMutex);
-        return connections.find(userId.str()) != connections.end();
+        std::lock_guard lock(connectionsMutex);
+        return connections.contains(userId.str());
     }
 };
 

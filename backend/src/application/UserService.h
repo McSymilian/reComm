@@ -47,8 +47,8 @@ public:
         return std::nullopt;
     }
 
-    std::optional<std::string> authenticate(const std::string& username, const std::string& password) {
-        std::optional<User> user = repository->findByUsername(username);
+    std::optional<std::string> authenticate(const std::string& username, const std::string& password) const {
+        const std::optional<User> user = repository->findByUsername(username);
         if(!user.has_value()) return std::nullopt;
 
         if(user->passwordHash != hashPassword(password))
@@ -57,12 +57,11 @@ public:
         return jwtService->generateToken(user->uuid.str());
     }
 
-    std::optional<User> getUserByUsername(const std::string& username) {
+    std::optional<User> getUserByUsername(const std::string& username) const {
         return repository->findByUsername(username);
     }
 
-    std::vector<std::string> getFriends(const std::string& username) {
-        // TODO: Implementacja logiki znajomych
-        return {};
+    std::optional<User> getUserByUuid(const UUIDv4::UUID& uuid) const {
+        return repository->findByUUID(uuid);
     }
 };

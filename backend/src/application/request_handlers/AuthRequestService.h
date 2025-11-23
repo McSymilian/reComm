@@ -15,7 +15,7 @@ public:
         return "AUTH";
     }
 
-    json handleRequest(const json& request) override {
+    json handleRequest(const json& request, const UUIDv4::UUID userUUID) override {
         const std::string username = request.value("username", "");
         const std::string password = request.value("password", "");
 
@@ -29,5 +29,9 @@ public:
         response["message"] = "Authenticated";
         return response;
 
+    }
+
+    bool requireAuthentication() override {
+        return false;
     }
 };

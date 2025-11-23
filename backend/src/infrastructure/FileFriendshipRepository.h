@@ -44,12 +44,14 @@ class FileFriendshipRepository final : public FriendshipRepository {
 
     static std::optional<Friendship> jsonToFriendship(const nlohmann::json& json) {
         try {
-            auto requesterId = UUIDv4::UUID::fromStrFactory(json["requesterId"].get<std::string>());
-            auto addresseeId = UUIDv4::UUID::fromStrFactory(json["addresseeId"].get<std::string>());
+            const auto requesterIdValue = json.value("requesterId", "");
+            const auto addresseeIdValue = json.value("addresseeId", "");
 
-            if(requesterId == nullptr || addresseeId == nullptr)
+            if(requesterIdValue == "" || addresseeIdValue == "")
                 return std::nullopt;
 
+            const auto requesterId = UUIDv4::UUID::fromStrFactory(requesterIdValue);
+            const auto addresseeId = UUIDv4::UUID::fromStrFactory(addresseeIdValue);
             return Friendship{
                 requesterId,
                 addresseeId,
@@ -153,12 +155,14 @@ public:
                 continue;
 
             if(item["requesterId"] == userIdStr) {
-                const auto uuid = UUIDv4::UUID::fromStrFactory(item["addresseeId"].get<std::string>());
-                if(uuid != nullptr)
+                const auto value = item.value("addresseeId", "");
+                const auto uuid = UUIDv4::UUID::fromStrFactory(value);
+                if(value != "")
                     friends.push_back(uuid);
             } else if(item["addresseeId"] == userIdStr) {
-                const auto uuid = UUIDv4::UUID::fromStrFactory(item["requesterId"].get<std::string>());
-                if(uuid != nullptr)
+                const auto value = item.value("requesterId", "");
+                const auto uuid = UUIDv4::UUID::fromStrFactory(value);
+                if(value != "")
                     friends.push_back(uuid);
             }
         }

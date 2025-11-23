@@ -14,12 +14,15 @@
 #include <nlohmann/json.hpp>
 
 #include "src/application/FriendshipService.h"
+#include "src/application/GroupService.h"
 #include "src/application/request_handlers/AuthRequestService.h"
 #include "src/application/request_handlers/FriendRequestService.h"
+#include "src/application/request_handlers/GroupRequestService.h"
 #include "src/application/request_handlers/RequestHandleService.h"
 #include "src/infrastructure/FileUserRepository.h"
 #include "src/application/UserService.h"
 #include "src/infrastructure/FileFriendshipRepository.h"
+#include "src/infrastructure/FileGroupRepository.h"
 #include "src/infrastructure/ConnectionManager.h"
 #include "src/infrastructure/FileNotificationRepository.h"
 #include "src/application/NotificationService.h"
@@ -43,54 +46,38 @@ void handleClient(
 
     Logger::log(std::format("Nowe połączenie z {}:{}", clientIP, clientPort), Logger::Level::INFO, Logger::Importance::LOW);
 
-    bool shouldClose = false;
     std::optional<UUIDv4::UUID> authenticatedUserId;
 
+    bool shouldClose = false;
     while(!shouldClose) {
         char buff[4096] = {};
         ssize_t n = recv(client_socket, buff, sizeof(buff)-1, 0);
-
         if(n > 0) {
             try {
                 json request;
                 try {
                     request = json::parse(buff);
                 } catch(const std::exception&) {
+                    Logger::log(std::format("Received text: {}", std::string(buff)), Logger::Level::WARNING, Logger::Importance::LOW);
                     request = json::parse("{}");
                 }
 
                 Logger::log(std::format("Request from {}:{}: {}", clientIP, clientPort, request.dump()), Logger::Level::INFO, Logger::Importance::LOW);
 
-                const json response = handleRequestService.handleRequest(request);
-
-                // Jeśli to była udana autentykacja lub rejestracja, zarejestruj połączenie
-                if(response.contains("code") && response["code"] == 200 && response.contains("token")) {
-                    auto userId = JwtService::getUuidFromToken(response["token"]);
-                    if(userId.has_value()) {
-                        authenticatedUserId = userId.value();
-                        connectionManager->registerConnection(authenticatedUserId.value(), client_socket);
-
-                        // Wyślij zaległe notyfikacje
-                        notificationService->sendPendingNotifications(authenticatedUserId.value());
-                    }
-                } else if (response.contains("code") && response["code"] == 201 && response.contains("token")) {
-                    // Nowa rejestracja
-                    auto userId = JwtService::getUuidFromToken(response["token"]);
-                    if(userId.has_value()) {
-                        authenticatedUserId = userId.value();
-                        connectionManager->registerConnection(authenticatedUserId.value(), client_socket);
-                    }
-                }
+                const json response = handleRequestService.handleRequest(request, client_socket, authenticatedUserId);
 
                 std::string responseStr = response.dump() + "\n";
                 ssize_t sent = send(client_socket, responseStr.c_str(), responseStr.size(), 0);
 
+                if (response.contains("close"))
+                    shouldClose = true;
+
                 if(sent == -1) {
                     Logger::log(std::format("Error sending response to {}:{}", clientIP, clientPort), Logger::Level::ERROR, Logger::Importance::MEDIUM);
                     shouldClose = true;
-                } else {
+                } else
                     Logger::log(std::format("Response to {}:{}: {}", clientIP, clientPort, responseStr), Logger::Level::INFO, Logger::Importance::LOW);
-                }
+
             } catch(const std::exception& e) {
                 Logger::log(std::format("Internal error for {}:{}: {}", clientIP, clientPort, e.what()), Logger::Level::ERROR, Logger::Importance::HIGH);
                 shouldClose = true;
@@ -104,10 +91,9 @@ void handleClient(
         }
     }
 
-    // Wyrejestruj połączenie jeśli było zalogowane
-    if(authenticatedUserId.has_value()) {
+    if(authenticatedUserId.has_value())
         connectionManager->unregisterConnection(authenticatedUserId.value());
-    }
+
 
     close(client_socket);
     Logger::log(std::format("Zamknięto połączenie z {}:{}", clientIP, clientPort), Logger::Level::INFO, Logger::Importance::LOW);
@@ -166,20 +152,34 @@ int main(int argc, char** argv) {
 
     const auto friendship_repository = std::make_shared<FileFriendshipRepository>(dbPath);
     const auto user_repository = std::make_shared<FileUserRepository>(dbPath);
+    const auto group_repository = std::make_shared<FileGroupRepository>(dbPath);
     const auto notification_repository = std::make_shared<FileNotificationRepository>(dbPath);
     const auto connectionManager = std::make_shared<ConnectionManager>();
     const auto jwtService = std::make_shared<JwtService>("super_tajne_hasło_do_jwt_nie_zmienie_w_produkcji");
     const auto userService = std::make_shared<UserService>(user_repository, jwtService);
     const auto friendshipService = std::make_shared<FriendshipService>(friendship_repository, user_repository);
+    const auto groupService = std::make_shared<GroupService>(group_repository, friendship_repository, user_repository);
     const auto notificationService = std::make_shared<NotificationService>(notification_repository, connectionManager);
 
     const auto authRequestService = std::make_shared<AuthRequestService>(userService);
     const auto registerRequestService = std::make_shared<RegisterRequestService>(userService);
-    const auto sendFriendRequestService = std::make_shared<SendFriendRequestService>(friendshipService, jwtService, userService, notificationService);
-    const auto acceptFriendRequestService = std::make_shared<AcceptFriendRequestService>(friendshipService, jwtService);
-    const auto rejectFriendRequestService = std::make_shared<RejectFriendRequestService>(friendshipService, jwtService);
-    const auto getFriendsService = std::make_shared<GetFriendsService>(friendshipService, jwtService);
-    const auto getPendingRequestsService = std::make_shared<GetPendingRequestsService>(friendshipService, jwtService);
+
+    // Friendship services
+    const auto sendFriendRequestService = std::make_shared<SendFriendRequestService>(friendshipService, userService, notificationService);
+    const auto acceptFriendRequestService = std::make_shared<AcceptFriendRequestService>(friendshipService, userService);
+    const auto rejectFriendRequestService = std::make_shared<RejectFriendRequestService>(friendshipService, userService);
+    const auto getFriendsService = std::make_shared<GetFriendsService>(friendshipService, userService);
+    const auto getPendingRequestsService = std::make_shared<GetPendingRequestsService>(friendshipService, userService);
+
+    // Group services
+    const auto createGroupService = std::make_shared<CreateGroupService>(groupService);
+    const auto addMemberToGroupService = std::make_shared<AddMemberToGroupService>(groupService);
+    const auto updateGroupNameService = std::make_shared<UpdateGroupNameService>(groupService);
+    const auto leaveGroupService = std::make_shared<LeaveGroupService>(groupService);
+    const auto deleteGroupService = std::make_shared<DeleteGroupService>(groupService);
+    const auto getUserGroupsService = std::make_shared<GetUserGroupsService>(groupService);
+    const auto getGroupDetailsService = std::make_shared<GetGroupDetailsService>(groupService);
+    const auto getGroupMembersService = std::make_shared<GetGroupMembersService>(groupService, user_repository);
 
     const std::unordered_map<std::string, std::shared_ptr<RequestService>> requestServices {
             {registerRequestService->getHandledMethodName(), registerRequestService},
@@ -188,9 +188,17 @@ int main(int argc, char** argv) {
             {acceptFriendRequestService->getHandledMethodName(), acceptFriendRequestService},
             {rejectFriendRequestService->getHandledMethodName(), rejectFriendRequestService},
             {getFriendsService->getHandledMethodName(), getFriendsService},
-            {getPendingRequestsService->getHandledMethodName(), getPendingRequestsService}
+            {getPendingRequestsService->getHandledMethodName(), getPendingRequestsService},
+            {createGroupService->getHandledMethodName(), createGroupService},
+            {addMemberToGroupService->getHandledMethodName(), addMemberToGroupService},
+            {updateGroupNameService->getHandledMethodName(), updateGroupNameService},
+            {leaveGroupService->getHandledMethodName(), leaveGroupService},
+            {deleteGroupService->getHandledMethodName(), deleteGroupService},
+            {getUserGroupsService->getHandledMethodName(), getUserGroupsService},
+            {getGroupDetailsService->getHandledMethodName(), getGroupDetailsService},
+            {getGroupMembersService->getHandledMethodName(), getGroupMembersService}
     };
-    const auto handleRequestService = RequestHandleService(requestServices);
+    const auto handleRequestService = RequestHandleService(requestServices, jwtService, connectionManager, notificationService);
 
     Logger::log(std::format("Serwer TCP nasłuchuje na porcie {}", port), Logger::Level::INFO, Logger::Importance::HIGH);
     Logger::log(std::format("Źródło bazy danych {}", dbPath), Logger::Level::INFO, Logger::Importance::HIGH);

@@ -4,28 +4,23 @@
 
 #include "RequestService.h"
 #include "../FriendshipService.h"
-#include "../JwtService.h"
 #include "../UserService.h"
 #include "../NotificationService.h"
-#include "../../exceptions/invalid_token_error.h"
 #include "../../exceptions/missing_required_field_error.h"
 
 using json = nlohmann::json;
 
 class SendFriendRequestService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
-    const std::shared_ptr<JwtService> jwtService;
     const std::shared_ptr<UserService> userService;
     const std::shared_ptr<NotificationService> notificationService;
 
 public:
     explicit SendFriendRequestService(
         std::shared_ptr<FriendshipService> friendshipService,
-        std::shared_ptr<JwtService> jwtService,
         std::shared_ptr<UserService> userService,
         std::shared_ptr<NotificationService> notificationService
     ) : friendshipService(std::move(friendshipService)),
-        jwtService(std::move(jwtService)),
         userService(std::move(userService)),
         notificationService(std::move(notificationService)) {}
 
@@ -33,29 +28,19 @@ public:
         return "SEND_FRIEND_REQUEST";
     }
 
-    json handleRequest(const json& request) override {
-        const std::string token = request.value("token", "");
+    json handleRequest(const json& request, const UUIDv4::UUID userUUID) override {
         const std::string addresseeUsername = request.value("addresseeUsername", "");
 
-        if (token.empty())
-            throw missing_required_field_error("token");
         if (addresseeUsername.empty())
             throw missing_required_field_error("addresseeUsername");
 
-        if (!jwtService->verifyToken(token))
-            throw invalid_token_error();
-
-        const auto requesterUuid = JwtService::getUuidFromToken(token);
-        if (!requesterUuid.has_value())
-            throw invalid_token_error();
-
-        friendshipService->sendFriendRequest(requesterUuid.value(), addresseeUsername);
+        friendshipService->sendFriendRequest(userUUID, addresseeUsername);
 
         const auto addressee = userService->getUserByUsername(addresseeUsername);
         if (addressee.has_value()) {
             json notification;
             notification["type"] = "FRIEND_REQUEST";
-            notification["from"] = requesterUuid.value().str();
+            notification["from"] = userService->getUserByUuid(userUUID)->username;
             notification["message"] = "You have a new friend request";
 
             notificationService->sendNotification(addressee.value().uuid, notification);
@@ -70,38 +55,28 @@ public:
 
 class AcceptFriendRequestService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
-    const std::shared_ptr<JwtService> jwtService;
+    const std::shared_ptr<UserService> userService;
 
 public:
     explicit AcceptFriendRequestService(
         std::shared_ptr<FriendshipService> friendshipService,
-        std::shared_ptr<JwtService> jwtService
+        std::shared_ptr<UserService> userService
     ) : friendshipService(std::move(friendshipService)),
-        jwtService(std::move(jwtService)) {}
+        userService(std::move(userService)) {}
 
     std::string getHandledMethodName() override {
         return "ACCEPT_FRIEND_REQUEST";
     }
 
-    json handleRequest(const json& request) override {
-        const std::string token = request.value("token", "");
-        const std::string requesterUuidStr = request.value("requesterUuid", "");
+    json handleRequest(const json& request, const UUIDv4::UUID userUUID) override {
+        const std::string requesterName = request.value("requester", "");
 
-        if (token.empty())
-            throw missing_required_field_error("token");
-        if (requesterUuidStr.empty())
-            throw missing_required_field_error("requesterUuid");
+        if (requesterName.empty())
+            throw missing_required_field_error("requester");
 
-        if (!jwtService->verifyToken(token))
-            throw invalid_token_error();
+        const auto requesterUuid = userService->getUserByUsername(requesterName)->uuid;
 
-        const auto userUuid = JwtService::getUuidFromToken(token);
-        if (!userUuid.has_value())
-            throw invalid_token_error();
-
-        const auto requesterUuid = UUIDv4::UUID::fromStrFactory(requesterUuidStr);
-
-        friendshipService->acceptFriendRequest(userUuid.value(), requesterUuid);
+        friendshipService->acceptFriendRequest(userUUID, requesterUuid);
 
         json response;
         response["code"] = 200;
@@ -112,38 +87,26 @@ public:
 
 class RejectFriendRequestService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
-    const std::shared_ptr<JwtService> jwtService;
-
+    const std::shared_ptr<UserService> userService;
 public:
     explicit RejectFriendRequestService(
         std::shared_ptr<FriendshipService> friendshipService,
-        std::shared_ptr<JwtService> jwtService
+        std::shared_ptr<UserService> userService
     ) : friendshipService(std::move(friendshipService)),
-        jwtService(std::move(jwtService)) {}
+        userService(std::move(userService)) {}
 
     std::string getHandledMethodName() override {
         return "REJECT_FRIEND_REQUEST";
     }
 
-    json handleRequest(const json& request) override {
-        const std::string token = request.value("token", "");
-        const std::string requesterUuidStr = request.value("requesterUuid", "");
+    json handleRequest(const json& request, const UUIDv4::UUID userUUID) override {
+        const std::string requesterName = request.value("requester", "");
 
-        if (token.empty())
-            throw missing_required_field_error("token");
-        if (requesterUuidStr.empty())
-            throw missing_required_field_error("requesterUuid");
+        if (requesterName.empty())
+            throw missing_required_field_error("requester");
+        const auto requesterUuid = userService->getUserByUsername(requesterName)->uuid;
 
-        if (!jwtService->verifyToken(token))
-            throw invalid_token_error();
-
-        const auto userUuid = JwtService::getUuidFromToken(token);
-        if (!userUuid.has_value())
-            throw invalid_token_error();
-
-        const auto requesterUuid = UUIDv4::UUID::fromStrFactory(requesterUuidStr);
-
-        friendshipService->rejectFriendRequest(userUuid.value(), requesterUuid);
+        friendshipService->rejectFriendRequest(userUUID, requesterUuid);
 
         json response;
         response["code"] = 200;
@@ -154,42 +117,28 @@ public:
 
 class GetFriendsService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
-    const std::shared_ptr<JwtService> jwtService;
-
+    const std::shared_ptr<UserService> userService;
 public:
     explicit GetFriendsService(
         std::shared_ptr<FriendshipService> friendshipService,
-        std::shared_ptr<JwtService> jwtService
+        std::shared_ptr<UserService> userService
     ) : friendshipService(std::move(friendshipService)),
-        jwtService(std::move(jwtService)) {}
+        userService(std::move(userService)) {}
 
     std::string getHandledMethodName() override {
         return "GET_FRIENDS";
     }
 
-    json handleRequest(const json& request) override {
-        const std::string token = request.value("token", "");
-
-        if (token.empty())
-            throw missing_required_field_error("token");
-
-        if (!jwtService->verifyToken(token))
-            throw invalid_token_error();
-
-        const auto userUuid = JwtService::getUuidFromToken(token);
-        if (!userUuid.has_value())
-            throw invalid_token_error();
-
-        const auto friends = friendshipService->getFriends(userUuid.value());
+    json handleRequest(const json& request, const UUIDv4::UUID userUUID) override {
+        const auto friends = friendshipService->getFriends(userUUID);
 
         json response;
         response["code"] = 200;
         response["message"] = "Friends retrieved successfully";
         response["friends"] = json::array();
 
-        for (const auto& friendUuid : friends) {
-            response["friends"].push_back(friendUuid.str());
-        }
+        for (const auto& friendUuid : friends)
+            response["friends"].push_back(userService->getUserByUuid(friendUuid)->username);
 
         return response;
     }
@@ -197,33 +146,21 @@ public:
 
 class GetPendingRequestsService final : public RequestService {
     const std::shared_ptr<FriendshipService> friendshipService;
-    const std::shared_ptr<JwtService> jwtService;
+    const std::shared_ptr<UserService> userService;
 
 public:
     explicit GetPendingRequestsService(
         std::shared_ptr<FriendshipService> friendshipService,
-        std::shared_ptr<JwtService> jwtService
+        std::shared_ptr<UserService> userService
     ) : friendshipService(std::move(friendshipService)),
-        jwtService(std::move(jwtService)) {}
+        userService(std::move(userService)) {}
 
     std::string getHandledMethodName() override {
         return "GET_PENDING_REQUESTS";
     }
 
-    json handleRequest(const json& request) override {
-        const std::string token = request.value("token", "");
-
-        if (token.empty())
-            throw missing_required_field_error("token");
-
-        if (!jwtService->verifyToken(token))
-            throw invalid_token_error();
-
-        const auto userUuid = JwtService::getUuidFromToken(token);
-        if (!userUuid.has_value())
-            throw invalid_token_error();
-
-        const auto pendingRequests = friendshipService->getPendingRequests(userUuid.value());
+    json handleRequest(const json& request, const UUIDv4::UUID userUUID) override {
+        const auto pendingRequests = friendshipService->getPendingRequests(userUUID);
 
         json response;
         response["code"] = 200;
@@ -232,8 +169,8 @@ public:
 
         for (const auto& friendship : pendingRequests) {
             json requestObj;
-            requestObj["requesterId"] = friendship.requesterId.str();
-            requestObj["addresseeId"] = friendship.addresseeId.str();
+            requestObj["requester"] = userService->getUserByUuid(friendship.requesterId)->username;
+            requestObj["addressee"] = userService->getUserByUuid(friendship.addresseeId)->username;
             requestObj["status"] = friendship.status;
             response["pendingRequests"].push_back(requestObj);
         }

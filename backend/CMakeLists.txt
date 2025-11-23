@@ -19,19 +19,25 @@ add_executable(reComm main.cpp
         src/application/request_handlers/RequestService.h
         src/application/request_handlers/RegisterRequestService.h
         src/application/request_handlers/AuthRequestService.h
+        src/application/request_handlers/GroupRequestService.h
 
         src/application/FriendshipService.h
+        src/application/GroupService.h
         src/application/UserService.h
         src/application/JwtService.h
 
         src/domain/friendship/Friendship.h
         src/domain/friendship/FriendshipRepository.h
 
+        src/domain/group/Group.h
+        src/domain/group/GroupRepository.h
+
         src/domain/user/User.h
         src/domain/user/UserRepository.h
 
         src/infrastructure/FileUserRepository.h
         src/infrastructure/FileFriendshipRepository.h
+        src/infrastructure/FileGroupRepository.h
 
         src/exceptions/invalid_credentials_error.h
         src/exceptions/user_already_exists_error.h
@@ -42,11 +48,17 @@ add_executable(reComm main.cpp
         src/exceptions/already_friends_error.h
         src/exceptions/friendship_request_already_sent_error.h
         src/exceptions/save_friendship_request_error.h
-
-        src/utils/Logger.h
+        src/exceptions/group_not_found_error.h
+        src/exceptions/not_group_member_error.h
+        src/exceptions/cannot_add_non_friend_to_group_error.h
+        src/exceptions/user_already_in_group_error.h
+        src/exceptions/cannot_leave_group_as_last_member_error.h
         src/exceptions/friendship_request_not_found_error.h
         src/exceptions/friendship_request_already_processed_error.h
         src/exceptions/friendship_request_process_error.h
+        src/exceptions/unauthorized_error.h
+
+        src/utils/Logger.h
 )
 
 include(FetchContent)

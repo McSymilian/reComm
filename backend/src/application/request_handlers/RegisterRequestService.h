@@ -15,7 +15,7 @@ public:
         return "REGISTER";
     }
 
-    json handleRequest(const json& request) override {
+    json handleRequest(const json& request, const UUIDv4::UUID userUUID) override {
         const std::string username = request.value("username", "");
         const std::string password = request.value("password", "");
 
@@ -28,5 +28,9 @@ public:
         response["code"] = 201;
         response["message"] = "User registered successfully";
         return response;
+    }
+
+    bool requireAuthentication() override {
+        return false;
     }
 };
