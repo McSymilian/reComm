@@ -5,7 +5,6 @@
 #include "../exceptions/group_not_found_error.h"
 #include "../exceptions/not_group_member_error.h"
 #include "../exceptions/user_not_found_error.h"
-// #include "../exceptions/already_group_member_error.h"
 #include "../exceptions/cannot_add_non_friend_to_group_error.h"
 #include "../exceptions/user_already_in_group_error.h"
 #include "../exceptions/cannot_leave_group_as_last_member_error.h"

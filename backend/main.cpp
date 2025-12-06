@@ -15,14 +15,17 @@
 
 #include "src/application/FriendshipService.h"
 #include "src/application/GroupService.h"
+#include "src/application/MessageService.h"
 #include "src/application/request_handlers/AuthRequestService.h"
 #include "src/application/request_handlers/FriendRequestService.h"
 #include "src/application/request_handlers/GroupRequestService.h"
+#include "src/application/request_handlers/MessageRequestService.h"
 #include "src/application/request_handlers/RequestHandleService.h"
 #include "src/infrastructure/FileUserRepository.h"
 #include "src/application/UserService.h"
 #include "src/infrastructure/FileFriendshipRepository.h"
 #include "src/infrastructure/FileGroupRepository.h"
+#include "src/infrastructure/FileMessageRepository.h"
 #include "src/infrastructure/ConnectionManager.h"
 #include "src/infrastructure/FileNotificationRepository.h"
 #include "src/application/NotificationService.h"
@@ -153,6 +156,7 @@ int main(int argc, char** argv) {
     const auto friendship_repository = std::make_shared<FileFriendshipRepository>(dbPath);
     const auto user_repository = std::make_shared<FileUserRepository>(dbPath);
     const auto group_repository = std::make_shared<FileGroupRepository>(dbPath);
+    const auto message_repository = std::make_shared<FileMessageRepository>(dbPath);
     const auto notification_repository = std::make_shared<FileNotificationRepository>(dbPath);
     const auto connectionManager = std::make_shared<ConnectionManager>();
     const auto jwtService = std::make_shared<JwtService>("super_tajne_hasło_do_jwt_nie_zmienie_w_produkcji");
@@ -160,6 +164,7 @@ int main(int argc, char** argv) {
     const auto friendshipService = std::make_shared<FriendshipService>(friendship_repository, user_repository);
     const auto groupService = std::make_shared<GroupService>(group_repository, friendship_repository, user_repository);
     const auto notificationService = std::make_shared<NotificationService>(notification_repository, connectionManager);
+    const auto messageService = std::make_shared<MessageService>(message_repository, group_repository, user_repository, friendship_repository, notificationService);
 
     const auto authRequestService = std::make_shared<AuthRequestService>(userService);
     const auto registerRequestService = std::make_shared<RegisterRequestService>(userService);
@@ -181,6 +186,14 @@ int main(int argc, char** argv) {
     const auto getGroupDetailsService = std::make_shared<GetGroupDetailsService>(groupService);
     const auto getGroupMembersService = std::make_shared<GetGroupMembersService>(groupService, user_repository);
 
+    // Message services
+    const auto sendMessageService = std::make_shared<SendMessageService>(messageService);
+    const auto sendGroupMessageService = std::make_shared<SendGroupMessageService>(messageService);
+    const auto sendPrivateMessageService = std::make_shared<SendPrivateMessageService>(messageService, user_repository);
+    const auto getGroupMessagesService = std::make_shared<GetGroupMessagesService>(messageService);
+    const auto getPrivateMessagesService = std::make_shared<GetPrivateMessagesService>(messageService, user_repository);
+    const auto getRecentMessagesService = std::make_shared<GetRecentMessagesService>(messageService);
+
     const std::unordered_map<std::string, std::shared_ptr<RequestService>> requestServices {
             {registerRequestService->getHandledMethodName(), registerRequestService},
             {authRequestService->getHandledMethodName(), authRequestService},
@@ -196,7 +209,13 @@ int main(int argc, char** argv) {
             {deleteGroupService->getHandledMethodName(), deleteGroupService},
             {getUserGroupsService->getHandledMethodName(), getUserGroupsService},
             {getGroupDetailsService->getHandledMethodName(), getGroupDetailsService},
-            {getGroupMembersService->getHandledMethodName(), getGroupMembersService}
+            {getGroupMembersService->getHandledMethodName(), getGroupMembersService},
+            {sendMessageService->getHandledMethodName(), sendMessageService},
+            {sendGroupMessageService->getHandledMethodName(), sendGroupMessageService},
+            {sendPrivateMessageService->getHandledMethodName(), sendPrivateMessageService},
+            {getGroupMessagesService->getHandledMethodName(), getGroupMessagesService},
+            {getPrivateMessagesService->getHandledMethodName(), getPrivateMessagesService},
+            {getRecentMessagesService->getHandledMethodName(), getRecentMessagesService}
     };
     const auto handleRequestService = RequestHandleService(requestServices, jwtService, connectionManager, notificationService);
 

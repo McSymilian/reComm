@@ -20,6 +20,7 @@ add_executable(reComm main.cpp
         src/application/request_handlers/RegisterRequestService.h
         src/application/request_handlers/AuthRequestService.h
         src/application/request_handlers/GroupRequestService.h
+        src/application/request_handlers/MessageRequestService.h
 
         src/application/FriendshipService.h
         src/application/GroupService.h
@@ -59,6 +60,10 @@ add_executable(reComm main.cpp
         src/exceptions/unauthorized_error.h
 
         src/utils/Logger.h
+        src/domain/message/Message.h
+        src/domain/message/MessageRepository.h
+        src/infrastructure/FileMessageRepository.h
+        src/application/MessageService.h
 )
 
 include(FetchContent)
