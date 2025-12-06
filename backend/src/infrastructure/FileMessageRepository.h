@@ -104,7 +104,6 @@ public:
             }
         }
 
-        // Dodaj nową wiadomość
         data.push_back(messageToJson(message));
         saveData(data);
         return true;
@@ -153,14 +152,12 @@ public:
         const auto sinceTimeT = std::chrono::system_clock::to_time_t(since);
 
         for(const auto& item : data) {
-            // Wiadomość prywatna między user1 i user2
             const std::string typeStr = item.value("type", "GROUP");
             if(typeStr != "PRIVATE") continue;
 
             const std::string senderId = item.value("senderId", "");
             const std::string receiverId = item.value("receiverId", "");
 
-            // Sprawdź czy wiadomość jest między tymi dwoma użytkownikami
             const bool isMatch = (senderId == user1Str && receiverId == user2Str) ||
                                 (senderId == user2Str && receiverId == user1Str);
 

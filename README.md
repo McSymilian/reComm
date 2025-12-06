@@ -12,6 +12,18 @@ Aplikacja serwerowa dla systemu reComm w C++20 z obsługą użytkowników, znajo
   - Zmiana nazwy grupy (każdy członek)
   - Opuszczanie grupy
   - Usuwanie grupy
+- ✅ System wiadomości:
+  - **Wiadomości grupowe:**
+    - Wysyłanie wiadomości do grup
+    - Pobieranie historii wiadomości z paginacją
+    - Filtrowanie wiadomości po czasie
+  - **Wiadomości prywatne:**
+    - Wysyłanie wiadomości do znajomych
+    - Pobieranie historii konwersacji prywatnych
+    - Paginacja i filtrowanie
+  - **Live delivery:**
+    - Natychmiastowe dostarczanie wiadomości do połączonych użytkowników
+    - Notyfikacje NEW_GROUP_MESSAGE i NEW_PRIVATE_MESSAGE
 - ✅ Powiadomienia w czasie rzeczywistym
 - ✅ Przechowywanie danych w plikach JSON
 

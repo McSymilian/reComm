@@ -9,8 +9,6 @@
 
 using json = nlohmann::json;
 
-// ==================== WIADOMOŚCI GRUPOWE ====================
-
 class SendGroupMessageService final : public RequestService {
     const std::shared_ptr<MessageService> messageService;
 
@@ -68,7 +66,6 @@ public:
         if (groupUuid == nullptr)
             throw std::runtime_error("Invalid group ID");
 
-        // Parametry opcjonalne
         const size_t limit = request.value("limit", 100);
         const size_t offset = request.value("offset", 0);
 
@@ -79,7 +76,6 @@ public:
             const auto since = std::chrono::system_clock::from_time_t(sinceTimestamp);
             messages = messageService->getGroupMessages(groupUuid, userUUID, since, limit, offset);
         } else {
-            // W przeciwnym razie pobierz ostatnie wiadomości
             messages = messageService->getRecentGroupMessages(groupUuid, userUUID, limit);
         }
 
@@ -103,8 +99,6 @@ public:
         return response;
     }
 };
-
-// ==================== WIADOMOŚCI PRYWATNE ====================
 
 class SendPrivateMessageService final : public RequestService {
     const std::shared_ptr<MessageService> messageService;
@@ -130,7 +124,6 @@ public:
         if (content.empty())
             throw missing_required_field_error("content");
 
-        // Znajdź UUID odbiorcy po nazwie użytkownika
         const auto receiverUser = userRepo->findByUsername(receiverUsername);
         if (!receiverUser.has_value())
             throw user_not_found_error();
@@ -166,12 +159,10 @@ public:
         if (otherUsername.empty())
             throw missing_required_field_error("otherUsername");
 
-        // Znajdź UUID drugiego użytkownika po nazwie
         const auto otherUser = userRepo->findByUsername(otherUsername);
         if (!otherUser.has_value())
             throw user_not_found_error();
 
-        // Parametry opcjonalne
         const size_t limit = request.value("limit", 100);
         const size_t offset = request.value("offset", 0);
 
@@ -182,7 +173,6 @@ public:
             const auto since = std::chrono::system_clock::from_time_t(sinceTimestamp);
             messages = messageService->getPrivateMessages(userUUID, otherUser->uuid, since, limit, offset);
         } else {
-            // W przeciwnym razie pobierz ostatnie wiadomości
             messages = messageService->getRecentPrivateMessages(userUUID, otherUser->uuid, limit);
         }
 
@@ -207,9 +197,6 @@ public:
     }
 };
 
-// ==================== BACKWARD COMPATIBILITY ====================
-
-// Dla kompatybilności wstecznej - alias dla SEND_MESSAGE → SEND_GROUP_MESSAGE
 class SendMessageService final : public RequestService {
     const std::shared_ptr<MessageService> messageService;
 
