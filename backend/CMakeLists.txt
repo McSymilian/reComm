@@ -64,6 +64,7 @@ add_executable(reComm main.cpp
         src/domain/message/MessageRepository.h
         src/infrastructure/FileMessageRepository.h
         src/application/MessageService.h
+        src/infrastructure/ConnectionManager.h
 )
 
 include(FetchContent)

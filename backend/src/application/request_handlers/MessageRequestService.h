@@ -31,7 +31,7 @@ public:
             throw missing_required_field_error("content");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         const auto messageId = messageService->sendGroupMessage(userUUID, groupUuid, content);
@@ -63,7 +63,7 @@ public:
             throw missing_required_field_error("groupId");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         const size_t limit = request.value("limit", 100);
@@ -219,7 +219,7 @@ public:
             throw missing_required_field_error("content");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         const auto messageId = messageService->sendGroupMessage(userUUID, groupUuid, content);
@@ -251,7 +251,7 @@ public:
             throw missing_required_field_error("groupId");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         const size_t limit = request.value("limit", 100);

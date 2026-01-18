@@ -60,7 +60,7 @@ public:
             throw missing_required_field_error("username");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         groupService->addMemberToGroup(groupUuid, userUUID, username);
@@ -94,7 +94,7 @@ public:
             throw missing_required_field_error("newName");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         groupService->updateGroupName(groupUuid, userUUID, newName);
@@ -125,7 +125,7 @@ public:
             throw missing_required_field_error("groupId");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         groupService->leaveGroup(groupUuid, userUUID);
@@ -156,7 +156,7 @@ public:
             throw missing_required_field_error("groupId");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         groupService->deleteGroup(groupUuid, userUUID);
@@ -215,7 +215,7 @@ public:
             throw missing_required_field_error("groupId");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         const auto group = groupService->getGroupDetails(groupUuid, userUUID);
@@ -257,7 +257,7 @@ public:
             throw missing_required_field_error("groupId");
 
         const auto groupUuid = UUIDv4::UUID::fromStrFactory(groupIdStr);
-        if (groupUuid == nullptr)
+        if (groupIdStr.size() != 36)
             throw std::runtime_error("Invalid group ID");
 
         const auto members = groupService->getGroupMembers(groupUuid, userUUID);
