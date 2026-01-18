@@ -43,9 +43,10 @@ struct Group {
 
             std::vector<UUIDv4::UUID> members;
             for (const auto& memberStr : j["members"]) {
-                auto memberId = UUIDv4::UUID::fromStrFactory(memberStr.get<std::string>());
-                if (memberId != nullptr)
-                    members.push_back(memberId);
+                const auto memberStrValue = memberStr.get<std::string>();
+                if (memberStrValue.size() == 36) {
+                    members.push_back(UUIDv4::UUID::fromStrFactory(memberStrValue));
+                }
             }
 
             return Group{
