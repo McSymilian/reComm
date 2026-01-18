@@ -14,6 +14,7 @@ struct Message {
     UUIDv4::UUID senderId;
     UUIDv4::UUID receiverId;
     MessageType type;
+    std::string senderName;
     std::string content;
     std::chrono::system_clock::time_point sentAt;
     std::chrono::system_clock::time_point deliveredAt;
