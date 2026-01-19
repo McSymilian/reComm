@@ -183,7 +183,7 @@ class ConversationList(ctk.CTkScrollableFrame):
                 
                 message_cutoff = int((datetime.datetime.now() - datetime.timedelta(days=3)).timestamp())
                 for friend in friends_response.friends:
-                    messages = self.api_client.get_messages_paginated(
+                    messages = self.api_client.get_private_messages_paginated(
                         friend, 
                         since=message_cutoff, 
                         total_limit=50
