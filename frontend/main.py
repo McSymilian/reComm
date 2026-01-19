@@ -7,5 +7,7 @@ logging.basicConfig(
 )
 
 if __name__ == "__main__":
-    app = App()
+    host = input("Enter host: ")
+    port = int(input("Enter port: "))
+    app = App(host=host, port=port)
     app.mainloop()
