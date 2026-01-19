@@ -29,6 +29,7 @@ class FileMessageRepository final : public MessageRepository {
                 {"senderId", message.senderId.str()},
                 {"receiverId", message.receiverId.str()},
                 {"type", message.type == MessageType::GROUP ? "GROUP" : "PRIVATE"},
+                {"senderName", message.senderName},
                 {"content", message.content},
                 {"sentAt", std::chrono::system_clock::to_time_t(message.sentAt)},
                 {"deliveredAt", std::chrono::system_clock::to_time_t(message.deliveredAt)}
@@ -40,6 +41,7 @@ class FileMessageRepository final : public MessageRepository {
             const auto messageIdValue = json.value("messageId", "");
             const auto senderIdValue = json.value("senderId", "");
             const auto receiverIdValue = json.value("receiverId", "");
+
 
             if(messageIdValue.empty() || senderIdValue.empty() || receiverIdValue.empty())
                 return std::nullopt;
@@ -56,9 +58,10 @@ class FileMessageRepository final : public MessageRepository {
                 senderId,
                 receiverId,
                 type,
-                json["content"].get<std::string>(),
-                std::chrono::system_clock::from_time_t(json["sentAt"].get<std::time_t>()),
-                std::chrono::system_clock::from_time_t(json["deliveredAt"].get<std::time_t>())
+                json.value("senderName", ""),
+                json.value("content", ""),
+                std::chrono::system_clock::from_time_t(json.value("sentAt", static_cast<std::time_t>(0))),
+                std::chrono::system_clock::from_time_t(json.value("deliveredAt", static_cast<std::time_t>(0)))
             };
         } catch (...) {
             return std::nullopt;

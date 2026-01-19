@@ -42,7 +42,8 @@ public:
 
         if(!groupRepo->isMember(groupId, senderId))
             throw not_group_member_error();
-
+        
+        const auto senderName = userRepo->findByUUID(senderId)->username;
         const auto now = std::chrono::system_clock::now();
         const auto messageId = uuidGenerator.getUUID();
 
@@ -51,6 +52,7 @@ public:
             senderId,
             groupId,
             MessageType::GROUP,
+            senderName,
             content,
             now,
             now
@@ -76,14 +78,16 @@ public:
         if(!friendshipRepo->areFriends(senderId, receiverId))
             throw std::runtime_error("Users are not friends");
 
+        const auto senderName = userRepo->findByUUID(senderId)->username;
         const auto now = std::chrono::system_clock::now();
         const auto messageId = uuidGenerator.getUUID();
-
+        
         const Message message{
             messageId,
             senderId,
             receiverId,
             MessageType::PRIVATE,
+            senderName,
             content,
             now,
             now
@@ -153,6 +157,7 @@ private:
         notification["messageId"] = message.messageId.str();
         notification["senderId"] = message.senderId.str();
         notification["groupId"] = message.receiverId.str();
+        notification["senderName"] = message.senderName;
         notification["content"] = message.content;
         notification["sentAt"] = std::chrono::system_clock::to_time_t(message.sentAt);
 
@@ -169,6 +174,7 @@ private:
         notification["messageId"] = message.messageId.str();
         notification["senderId"] = message.senderId.str();
         notification["content"] = message.content;
+        notification["senderName"] = message.senderName;
         notification["sentAt"] = std::chrono::system_clock::to_time_t(message.sentAt);
 
         notificationService->sendNotification(receiverId, notification);

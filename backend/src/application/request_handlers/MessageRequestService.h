@@ -86,6 +86,7 @@ public:
             msgJson["senderId"] = msg.senderId.str();
             msgJson["receiverId"] = msg.receiverId.str();
             msgJson["type"] = (msg.type == MessageType::GROUP) ? "GROUP" : "PRIVATE";
+            msgJson["senderName"] = msg.senderName;
             msgJson["content"] = msg.content;
             msgJson["sentAt"] = std::chrono::system_clock::to_time_t(msg.sentAt);
             msgJson["deliveredAt"] = std::chrono::system_clock::to_time_t(msg.deliveredAt);
@@ -183,6 +184,7 @@ public:
             msgJson["senderId"] = msg.senderId.str();
             msgJson["receiverId"] = msg.receiverId.str();
             msgJson["type"] = (msg.type == MessageType::GROUP) ? "GROUP" : "PRIVATE";
+            msgJson["senderName"] = msg.senderName;
             msgJson["content"] = msg.content;
             msgJson["sentAt"] = std::chrono::system_clock::to_time_t(msg.sentAt);
             msgJson["deliveredAt"] = std::chrono::system_clock::to_time_t(msg.deliveredAt);
@@ -265,6 +267,7 @@ public:
             msgJson["senderId"] = msg.senderId.str();
             msgJson["receiverId"] = msg.receiverId.str();
             msgJson["type"] = (msg.type == MessageType::GROUP) ? "GROUP" : "PRIVATE";
+            msgJson["senderName"] = msg.senderName;
             msgJson["content"] = msg.content;
             msgJson["sentAt"] = std::chrono::system_clock::to_time_t(msg.sentAt);
             msgJson["deliveredAt"] = std::chrono::system_clock::to_time_t(msg.deliveredAt);
