@@ -35,7 +35,7 @@ class BaseResponse(BaseModel):
     """Base class for all API responses."""
     
     code: int = Field(..., description="HTTP status code")
-    message: str = Field(..., description="Response message")
+    message: Optional[str] = Field(None, description="Response message")
     
     class Config:
         from_attributes = True

@@ -1,12 +1,11 @@
 """API client for reComm backend communication."""
 
 import logging
-from typing import Optional, Dict, Any, Type
+from typing import Optional, Dict, Any, Type, List
 import json
 import threading
 import queue
 
-from ..pydantic_classes.api.api_method import APIMethod
 
 
 from ..pydantic_classes.api.auth import (
@@ -36,7 +35,7 @@ from ..pydantic_classes.api.message import (
     SendPrivateMessageRequest, SendPrivateMessageResponse,
     GetPrivateMessagesRequest, GetPrivateMessagesResponse,
     SendMessageRequest, SendMessageResponse,
-    GetRecentMessagesRequest, GetRecentMessagesResponse,
+    GetRecentMessagesRequest, GetRecentMessagesResponse, MessageModel
 )
 from ..pydantic_classes.api.base import BaseRequestAuthenticated, BaseRequest
 from .connection import Connection
@@ -56,11 +55,13 @@ class APIClient:
         """
         self.host = host
         self.port = port
+        self.username: Optional[str] = None
         self.token: Optional[str] = None
         self.connection = connection or Connection(host, port)
         self._send_lock=threading.Lock()
         self._resp_queue: "queue.Queue[Dict[str, Any]]" = queue.Queue()
         self._notif_queue: "queue.Queue[Dict[str, Any]]" = queue.Queue()
+        self._notification_callbacks: list[callable] = []
         self._running = True
         self._receiver_thread = threading.Thread(target=self._receiver_loop, daemon=True)
         self._receiver_thread.start()
@@ -76,22 +77,36 @@ class APIClient:
                 continue
 
             if isinstance(payload, dict) and payload.get("type", False):
+                logger.info(f"Received notification: {payload}")
                 self._notif_queue.put(payload)
+                # Trigger all registered callbacks
+                self._trigger_notification_callbacks(payload)
             else:
+                logger.info(f"Received response: {payload}")
                 self._resp_queue.put(payload)
+    
+    def _trigger_notification_callbacks(self, notification: Dict[str, Any]) -> None:
+        """Trigger all registered notification callbacks."""
+        for callback in self._notification_callbacks:
+            try:
+                callback(notification)
+            except Exception as e:
+                logger.error(f"Error in notification callback: {e}")
     
     def _send_request(self, request: Type[BaseRequest], timeout: float = 10.0) -> Dict[str, Any]:
 
         request_json = request.model_dump_json().encode()
+        logger.info(f">>> REQUEST: {request_json.decode()}")
         with self._send_lock:
             self.connection.send(request_json)
             try:
                 response_dict = self._resp_queue.get(timeout=timeout)
             except queue.Empty:
-                raise TimeoutError("Timed out waiting for response")             
+                logger.error("<<< RESPONSE: Timed out waiting for response")
+                raise TimeoutError("Timed out waiting for response")
+        logger.info(f"<<< RESPONSE: {response_dict}")
         return response_dict
     
-
     def _build_request(self, 
                        request_cls: Type[BaseRequestAuthenticated], 
                        **kwargs) -> BaseRequestAuthenticated:
@@ -116,20 +131,32 @@ class APIClient:
         request = request_cls(
             body=body_instance,
             token=self.token)
-
+ 
         return request
     
+    def register_notification_callback(self, callback: callable) -> None:
+        """Register a callback to be triggered when a notification is received."""
+        if callback not in self._notification_callbacks:
+            self._notification_callbacks.append(callback)
+        logger.info("Registered notification callback.")
+
+    def unregister_notification_callback(self, callback: callable) -> None:
+        """Unregister a notification callback."""
+        if callback in self._notification_callbacks:
+            self._notification_callbacks.remove(callback)
+        logger.info("Unregistered notification callback.")
+
     def get_notification(self, timeout: Optional[float] = None) -> Optional[Dict[str, Any]]:
         """
         Fetch the next notification if available. Non-blocking when timeout=0, blocking when None.
         """
         try:
-            return self._notif_queue.get(timeout=timeout)
+            notification: Optional[Dict[str, Any]] = self._notif_queue.get(timeout=timeout)
+            logger.info(f"Received notification {notification}")
+            return notification
         except queue.Empty:
             return None
-    
-    def on_notification(self, callback: callable) -> None:
-        callback(self.get_notification())
+
 
     def set_token(self, token: str) -> None:
         """Set the authentication token."""
@@ -159,6 +186,7 @@ class APIClient:
         response = self._send_request(request)
         response_obj = AuthResponse(**response)
         if response_obj.token:
+            self.username = username
             self.set_token(response_obj.token)
         return response_obj
     
@@ -179,6 +207,7 @@ class APIClient:
         response_obj = RegisterResponse(**response)
         if response_obj.token:
             self.set_token(response_obj.token)
+            self.username = username
         return response_obj
     
     # Friendship methods
@@ -235,6 +264,7 @@ class APIClient:
         """
         request = self._build_request(GetFriendsRequest)
         response = self._send_request(request)
+        print(f"Get Friends Response: {response}")
         return GetFriendsResponse(**response)
     
     def get_pending_requests(self) -> GetPendingRequestsResponse:
@@ -246,6 +276,7 @@ class APIClient:
         """
         request = self._build_request(GetPendingRequestsRequest)
         response = self._send_request(request)
+        print(f"Get Pending Requests Response: {response}")
         return GetPendingRequestsResponse(**response)
     
     # Group methods
@@ -402,6 +433,39 @@ class APIClient:
         request = self._build_request(GetGroupMessagesRequest, groupId=group_id, limit=limit, offset=offset, since=since)
         response = self._send_request(request)
         return GetGroupMessagesResponse(**response)
+    
+    def get_group_messages_paginated(
+        self,
+        group_id: str,
+        since: int,
+        total_limit: int = 50,
+    ) -> List[MessageModel]:
+        """
+        Fetch messages from a group using pagination.
+
+        Args:
+            group_id: UUID of the group
+            since: Unix timestamp to fetch messages since
+            total_limit: Total maximum number of messages to fetch
+        """
+        all_messages: List[MessageModel] = []
+        offset = 0
+        page_size = 5 
+
+        while len(all_messages) < total_limit:
+            limit = min(page_size, total_limit - len(all_messages))
+            response = self.get_group_messages(
+                group_id=group_id,
+                limit=page_size,
+                offset=offset,
+                since=since
+            )
+            all_messages.extend(response.messages)
+            if len(response.messages) < limit:
+                break
+            offset += limit
+
+        return all_messages
 
     def send_private_message(self, receiver_username: str, content: str) -> SendPrivateMessageResponse:
         """
@@ -421,7 +485,7 @@ class APIClient:
     def get_private_messages(
         self,
         other_username: str,
-        limit: int = 100,
+        limit: int = 10,
         offset: int = 0,
         since: Optional[int] = None,
     ) -> GetPrivateMessagesResponse:
@@ -441,6 +505,42 @@ class APIClient:
         response = self._send_request(request)
         return GetPrivateMessagesResponse(**response)
 
+    def get_private_messages_paginated(
+        self,
+        other_username: str,
+        since: int,
+        total_limit: int = 50,
+    ) -> List[MessageModel]:
+        """
+        Fetch private messages with a specific user using pagination.
+
+        Args:
+            other_username: The other participant's username
+            since: Unix timestamp to fetch messages since
+            total_limit: Total maximum number of messages to fetch
+
+        Returns:
+            List of MessageModel
+        """
+        all_messages: List[MessageModel] = []
+        offset = 0
+        page_size = 5 # Number of messages to fetch per request
+
+        while len(all_messages) < total_limit:
+            limit = min(page_size, total_limit - len(all_messages))
+            response = self.get_private_messages(
+                other_username=other_username,
+                limit=page_size,
+                offset=offset,
+                since=since
+            )
+            all_messages.extend(response.messages)
+            if len(response.messages) < limit:
+                break
+            offset += limit
+
+        return all_messages
+        
     def send_message(self, group_id: str, content: str) -> SendMessageResponse:
         """
         Send a message via the generic SEND_MESSAGE endpoint (group-based).
@@ -479,7 +579,6 @@ class APIClient:
         self.connection.close()
 
 if __name__ == "__main__":
-    # Example usage
     client = APIClient(host="192.168.100.44", port=8080)
     auth_response = client.authenticate(username="test", password="pass")
     print(f"Authenticated! Token: {auth_response.token}")
@@ -488,6 +587,5 @@ if __name__ == "__main__":
     groups = client.get_user_groups()
     print(client.get_user_groups())
     print(client.get_private_messages(other_username="nowy_user"))
-
 
     client.set_token(auth_response.token)

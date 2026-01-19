@@ -232,4 +232,6 @@ class LoginFrame(ctk.CTkFrame):
 
 The `APIClient._send_request()` method is currently a placeholder. You need to implement the actual socket or WebSocket communication based on your backend protocol.
 
-For examples of how to use these models, see [examples.py](./examples.py).
+
+
+<!--  klasy pydantic wygenerowane z pomocą sztucznej inteligencji na podstawie dokumentacji API - dla wygody programowania -->

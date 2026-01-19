@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from .api_method import APIMethod
 
 from .base import BaseRequestAuthenticated, BaseResponse
@@ -18,13 +18,21 @@ class MessageModel(BaseModel):
     """Represents a message entity returned by the backend."""
 
     messageId: str = Field(..., description="UUID of the message", alias="messageId")
-    senderId: str = Field(..., description="UUID of the sender", alias="senderId")
-    receiverId: str = Field(..., description="UUID of the receiver (user or group)", alias="receiverId")
+    senderId: Optional[str] = Field(None, description="UUID of the sender", alias="senderId")
+    receiverId: Optional[str] = Field(None, description="UUID of the receiver (user or group)", alias="receiverId")
     type: MessageType = Field(..., description="Message type: GROUP or PRIVATE")
+    senderName: str = Field(..., description="Username of the sender", alias="senderName")
     content: str = Field(..., description="Message body")
     sentAt: int = Field(..., description="Unix timestamp when sent", alias="sentAt")
-    deliveredAt: int = Field(..., description="Unix timestamp when delivered", alias="deliveredAt")
+    deliveredAt: Optional[int] = Field(None, description="Unix timestamp when delivered", alias="deliveredAt")
 
+    @field_validator('sentAt', 'deliveredAt', mode='before')
+    @classmethod
+    def cast_timestamps_to_int(cls, v):
+        """Auto-cast float timestamps to int."""
+        if isinstance(v, float):
+            return int(v)
+        return v
 
 class SendGroupMessageBody(BaseModel):
     groupId: str = Field(..., description="UUID of the group", alias="groupId")
@@ -99,8 +107,8 @@ class GetPrivateMessagesRequest(BaseRequestAuthenticated):
 
 class GetPrivateMessagesResponse(BaseResponse):
     """Response model for fetching private messages."""
-
-    messages: List[MessageModel] = Field(default_factory=list, description="List of messages")
+    # can be empty if no messages exist between users
+    messages: List[MessageModel] = Field(None, description="List of messages")
     count: Optional[int] = Field(None, description="Number of messages returned")
 
 

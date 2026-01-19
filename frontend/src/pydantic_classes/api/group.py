@@ -1,7 +1,7 @@
 """Group API models."""
 
 from typing import List, Optional
-from pydantic import BaseModel, Field, conlist
+from pydantic import BaseModel, Field
 from .api_method import APIMethod
 from .base import BaseRequestAuthenticated, BaseResponse, EmptyBody
 

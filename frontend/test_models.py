@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 def test_base_models():
     """Test base models."""
-    from pydantic_classes.base import BaseRequest, BaseResponse, ErrorResponse
+    from pydantic_classes.base import BaseResponse, ErrorResponse
     
     # Test BaseResponse
     response = BaseResponse(code=200, message="Success")
@@ -58,8 +58,7 @@ def test_auth_models():
 def test_friendship_models():
     """Test friendship models."""
     from pydantic_classes.friendship import (
-        SendFriendRequestRequest, SendFriendRequestResponse,
-        AcceptFriendRequestRequest, RejectFriendRequestRequest,
+        SendFriendRequestRequest, AcceptFriendRequestRequest, RejectFriendRequestRequest,
         GetFriendsRequest, GetFriendsResponse,
         GetPendingRequestsRequest, GetPendingRequestsResponse, FriendshipRequest
     )

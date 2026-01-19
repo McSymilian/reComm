@@ -33,6 +33,8 @@ class Connection:
             raise ConnectionError("Not connected to server.")
         return self.socket.recv(buffer_size)
     
+    def close(self):
+        self._disconnect()
 
 if __name__ == "__main__":
 

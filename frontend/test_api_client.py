@@ -1,37 +1,65 @@
+from datetime import datetime
+from time import sleep
 from src.utils.api_client import APIClient
-from src.pydantic_classes.api.auth import (
-    AuthRequest, AuthResponse,
-    RegisterRequest, RegisterResponse
-)
+from src.utils.data_store import DataStore
 
 if __name__ == "__main__":
     # Example usage of the APIClient
-    client = APIClient(host="192.168.100.44", port=8080)
     client2 = APIClient(host="192.168.100.44", port=8080)
     
     # Authenticate a user
-    client.authenticate(username="test", password="pass")
     client2.authenticate(username="test1", password="pass")
+    print(client2.get_friends())
+    datastore2 = DataStore(client2)
+    datastore2.initialize()
+    print(datastore2)
     
-    client.send_friend_request(addressee_username="test1")
-    requests = client2.get_pending_requests()
-    print(f"Pending requests for test: {requests}")
-    if requests.pendingRequests:
-        for req in requests.pendingRequests:
-            print(f"Accepting friend request from: {req.requester}")
-            client2.accept_friend_request(requester=req.requester)
+
     message_response = client2.send_private_message(
         receiver_username="test",
-        content="Hello from test_api_client!"
+        content="Hello from test_api_client!" + datetime.now().isoformat()
     )
+    sleep(1)
 
     # group_creation_response = client.create_group(
     #     group_name="Test Group",
     # )
     # print(f"Group creation response: {group_creation_response}")
+    client = APIClient(host="192.168.100.44", port=8080)
+    client.authenticate(username="test", password="pass")
+    datastore = DataStore(client)
+    datastore.initialize()
+    print(datastore)
+    client.send_private_message(
+        receiver_username="test1",
+        content="Hello from test_api_client to test1!" + datetime.now().isoformat()
+    )
+    print(datastore2)
+    print(datastore)
 
-    print(client.get_notification(10))
+    print(client.get_notification(1))
+    # client.create_group(
+    #     group_name="Test Group from test_api_client"
+    # )
+    groups = client.get_user_groups()
+    group_id = groups.groups[0].groupId
+    client.add_member_to_group(
+        group_id=group_id,
+        username="test1"
+    )
+    client.get_group_messages(
+        group_id=group_id,
+        since=0,
+        limit=10
+    )
+    client.send_group_message(
+        group_id=group_id,
+        content="Hello group from test_api_client!" + datetime.now().isoformat()
+    )
+
+
     print(f"Message send response: {message_response}")
+
     # add friend
     # send_friend_request_response = client.send_friend_request(addressee_username="test")
     # if send_friend_request_response.code != 200:

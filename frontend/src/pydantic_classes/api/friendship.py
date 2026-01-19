@@ -65,16 +65,22 @@ class RejectFriendRequestResponse(BaseResponse):
 class GetFriendsRequest(BaseRequestAuthenticated):
     """Request model for getting friends list (GET_FRIENDS)."""
 
-    method: APIMethod = Field(APIMethod.GET_FRIENDS, )
+    method: APIMethod = Field(APIMethod.GET_FRIENDS)
     body: EmptyBody = Field(default=EmptyBody())
 
+
+# class FriendModel(BaseModel):
+#     """Model for a friend."""
+
+#     username: str = Field(..., description="Username of the friend")
+#     uuid: str = Field(..., description="UUID of the friend")
 
 class GetFriendsResponse(BaseResponse):
     """Response model for getting friends list (GET_FRIENDS)."""
     
     friends: List[str] = Field(
         default_factory=list, 
-        description="List of friend usernames"
+        description="List of friends"
     )
 
 
