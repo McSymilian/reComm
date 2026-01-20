@@ -1,11 +1,17 @@
-import logging
-from src.app import App
+#!/usr/bin/env python3
+import sys
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
+from PyQt6.QtWidgets import QApplication
+
+from gui.login_window import LoginWindow
+
+
+def main():
+    app = QApplication(sys.argv)
+    window = LoginWindow()
+    window.show()
+    sys.exit(app.exec())
+
 
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    main()
