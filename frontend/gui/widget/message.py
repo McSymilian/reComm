@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy
 
 
 class MessageWidget(QWidget):
@@ -15,6 +15,7 @@ class MessageWidget(QWidget):
         layout.setContentsMargins(10, 5, 10, 5)
 
         message_container = QWidget()
+        message_container.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         message_layout = QVBoxLayout(message_container)
         message_layout.setContentsMargins(10, 5, 10, 5)
 
@@ -24,6 +25,8 @@ class MessageWidget(QWidget):
 
         content_label = QLabel(self.content)
         content_label.setWordWrap(True)
+        content_label.setTextFormat(Qt.TextFormat.PlainText)
+        content_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         content_label.setStyleSheet("font-size: 13px;")
         message_layout.addWidget(content_label)
 

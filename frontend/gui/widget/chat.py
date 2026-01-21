@@ -57,6 +57,7 @@ class ChatWidget(QWidget):
 
         self.message_input = QLineEdit()
         self.message_input.setPlaceholderText("Wpisz wiadomość...")
+        self.message_input.setMaxLength(30)
         self.message_input.returnPressed.connect(self.send_message)
         input_layout.addWidget(self.message_input)
 

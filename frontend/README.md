@@ -151,8 +151,18 @@ sudo zypper install python312 python312-pip
 PyQt6 wymaga dodatkowych bibliotek systemowych:
 
 ```bash
+# Biblioteki fontów i renderowania
+sudo zypper install fontconfig libfreetype6
+
+# Biblioteki GLib (threading)
+sudo zypper install libglib-2_0-0 libgthread-2_0-0
+
+# Biblioteki OpenGL i EGL
+sudo zypper install Mesa-libGL1 Mesa-libEGL1
+
+# Biblioteki XCB wymagane przez Qt
 sudo zypper install libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0
-sudo zypper install libGL1 libEGL1 libxcb1 libxcb-icccm4 libxcb-image0 
+sudo zypper install libxcb1 libxcb-icccm4 libxcb-image0 
 sudo zypper install libxcb-keysyms1 libxcb-randr0 libxcb-render-util0
 sudo zypper install libxcb-shape0 libxcb-sync1 libxcb-xfixes0
 ```
@@ -205,6 +215,34 @@ python3.12 main.py
 - **Rozwiązanie:** Upewnij się, że używasz natywnej wersji Pythona dla ARM64
 
 ### Linux openSUSE
+
+**Problem:** Błąd "qt.qpa.plugin: Could not load the Qt platform plugin wayland"
+- **Rozwiązanie:** Wymuś użycie X11 zamiast Wayland:
+  ```bash
+  export QT_QPA_PLATFORM=xcb
+  python3.12 main.py
+  ```
+  Aby ustawić to na stałe:
+  ```bash
+  echo 'export QT_QPA_PLATFORM=xcb' >> ~/.bashrc
+  source ~/.bashrc
+  ```
+
+**Problem:** Puste kwadraty zamiast tekstu (brakujące czcionki)
+- **Rozwiązanie:** Zainstaluj czcionki systemowe:
+  ```bash
+  sudo zypper install google-noto-sans-fonts xorg-x11-fonts
+  ```
+
+**Problem:** Emotikony (emoji) nie wyświetlają się
+- **Rozwiązanie:** Zainstaluj czcionki emoji:
+  ```bash
+  sudo zypper install noto-coloremoji-fonts
+  ```
+  Jeśli pakiet nie zostanie znaleziony, wyszukaj dostępne:
+  ```bash
+  zypper search emoji
+  ```
 
 **Problem:** Błąd "qt.qpa.plugin: Could not load the Qt platform plugin"
 - **Rozwiązanie:** Zainstaluj brakujące biblioteki xcb:
