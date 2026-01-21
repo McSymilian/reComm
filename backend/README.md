@@ -36,12 +36,12 @@ Aplikacja serwerowa dla systemu reComm w C++20 z obsługą użytkowników, znajo
 # Aktualizacja repozytoriów
 sudo apt update
 
-# Instalacja kompilatora C++20 (GCC 10 lub nowszy)
-sudo apt install -y build-essential g++-10
+# Instalacja kompilatora C++20 (GCC 14 lub nowszy)
+sudo apt install -y build-essential g++-14
 
 # Ustawienie GCC 10 jako domyślnego kompilatora
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
 
 # Instalacja CMake (wersja 3.16 lub nowsza)
 sudo apt install -y cmake
@@ -53,7 +53,7 @@ sudo apt install -y make
 sudo apt install -y libssl-dev
 
 # Weryfikacja wersji
-gcc --version    # Powinno pokazać GCC 10.x lub nowszy
+gcc --version    # Powinno pokazać GCC 14.x lub nowszy
 cmake --version  # Powinno pokazać CMake 3.16.x lub nowszy
 make --version
 openssl version  # Powinno pokazać OpenSSL 1.0.1 lub nowszy
@@ -66,11 +66,11 @@ openssl version  # Powinno pokazać OpenSSL 1.0.1 lub nowszy
 sudo zypper refresh
 
 # Instalacja kompilatora C++20 (GCC 10 lub nowszy)
-sudo zypper install -y gcc10 gcc10-c++
+sudo zypper install -y gcc14 gcc14-c++
 
 # Ustawienie GCC 10 jako domyślnego kompilatora
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
 
 # Instalacja CMake
 sudo zypper install -y cmake

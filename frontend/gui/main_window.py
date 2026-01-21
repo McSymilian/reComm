@@ -25,6 +25,7 @@ class NotificationWorker(QObject):
 
     new_message_received = pyqtSignal(dict)
     friend_request_received = pyqtSignal(dict)
+    group_message_received = pyqtSignal(dict)
 
     def __init__(self, notification_queue):
         super().__init__()
@@ -40,6 +41,8 @@ class NotificationWorker(QObject):
                     self.new_message_received.emit(notification)
                 elif notification.get('type') == 'FRIEND_REQUEST':
                     self.friend_request_received.emit(notification)
+                elif notification.get('type') == 'NEW_GROUP_MESSAGE':
+                    self.group_message_received.emit(notification)
 
             except Exception:
                 pass
@@ -88,6 +91,7 @@ class MainWindow(QMainWindow):
         self.notification_worker = NotificationWorker(self.api_service.notification_queue)
         self.notification_worker.new_message_received.connect(self.on_new_message_received)
         self.notification_worker.friend_request_received.connect(self.on_friend_request_received)
+        self.notification_worker.group_message_received.connect(self.on_group_message_received)
         self.notification_thread = threading.Thread(target=self.notification_worker.run, daemon=True)
         self.notification_thread.start()
 
@@ -448,6 +452,23 @@ class MainWindow(QMainWindow):
             logger.debug(f"Otrzymano nową wiadomość od {sender}: {content}")
         except Exception as e:
             logger.warning(f"Błąd podczas obsługi nowej wiadomości: {e}")
+
+    def on_group_message_received(self, notification: dict):
+        """Obsługuje nową wiadomość grupową otrzymaną z wątku powiadomień."""
+        try:
+            sender = notification.get('senderName', notification.get('sender', ''))
+            content = notification.get('content', notification.get('message', ''))
+            group_id = notification.get('groupId', notification.get('group_id', ''))
+
+            # Sprawdź czy to wiadomość z aktualnie wybranej grupy
+            if self.current_chat_group_id and str(group_id) == str(self.current_chat_group_id):
+                if self.chat_widget and sender != self.username:
+                    is_own = (sender == self.username)
+                    self.chat_widget.add_message(sender, content, is_own)
+
+            logger.debug(f"Otrzymano nową wiadomość grupową od {sender} w grupie {group_id}: {content}")
+        except Exception as e:
+            logger.warning(f"Błąd podczas obsługi nowej wiadomości grupowej: {e}")
 
     def on_friend_request_received(self, notification: dict):
         try:
