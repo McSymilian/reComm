@@ -65,7 +65,6 @@ class APIClient:
         self._notification_callback = None
         
     def _send_request(self, request: BaseRequest, timeout=10) -> dict:
-        """Wysyła żądanie i czeka na odpowiedź."""
         request_dict = request.model_dump()
         request_dict["token"] = self.token
         self.connection.send(json.dumps(request_dict))
@@ -87,7 +86,6 @@ class DataStore:
         self._ui_callbacks: dict[str, list[callable]] = {}
     
     def _notify_ui(self, event_type: str, data=None):
-        """Powiadamia wszystkie zarejestrowane callbacki."""
         for callback in self._ui_callbacks.get(event_type, []):
             callback(data)
 ```
@@ -99,12 +97,11 @@ Komponenty rejestrują się na zdarzenia w DataStore i automatycznie aktualizuj�
 ```python
 class ConversationList(ctk.CTkScrollableFrame):
     def __init__(self, master, data_store, api_client, on_select_conversation):
-        # Rejestracja callbacków na aktualizacje danych
         self.data_store.register_ui_callback("friends_updated", self._on_data_updated)
         self.data_store.register_ui_callback("groups_updated", self._on_data_updated)
     
     def _on_data_updated(self, data=None):
-        self.after(0, self.refresh)  # Bezpieczne odświeżenie w wątku UI
+        self.after(0, self.refresh)
 ```
 
 ---
@@ -157,7 +154,7 @@ class MessageModel(BaseModel):
     senderName: str
     content: str
     sentAt: int
-    type: MessageType  # PRIVATE lub GROUP
+    type: MessageType
 ```
 
 ---

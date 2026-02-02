@@ -42,7 +42,6 @@ class LoginWindow(QWidget):
         ip_layout.addWidget(self.ip_input)
         connection_layout.addLayout(ip_layout)
 
-        # Port
         port_layout = QHBoxLayout()
         port_label = QLabel("Port:")
         port_label.setFixedWidth(100)

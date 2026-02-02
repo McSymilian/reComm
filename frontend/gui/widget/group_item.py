@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy, QPushButt
 
 
 class GroupItemWidget(QWidget):
-    settings_clicked = pyqtSignal(str, str)  # group_id, group_name
+    settings_clicked = pyqtSignal(str, str)
 
     def __init__(self, group_id: str, group_name: str, parent=None):
         super().__init__(parent)
