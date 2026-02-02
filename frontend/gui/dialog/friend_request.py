@@ -5,10 +5,8 @@ from PyQt6.QtCore import pyqtSignal
 
 
 class FriendRequestWidget(QWidget):
-    """Widget reprezentujący zaproszenie do znajomych z przyciskami accept/deny."""
-
-    accepted = pyqtSignal(str)  # Sygnał emitowany po akceptacji (username)
-    rejected = pyqtSignal(str)  # Sygnał emitowany po odrzuceniu (username)
+    accepted = pyqtSignal(str)
+    rejected = pyqtSignal(str)
 
     def __init__(self, requester_username: str, parent=None):
         super().__init__(parent)
@@ -19,13 +17,11 @@ class FriendRequestWidget(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(5, 2, 5, 2)
 
-        # Nazwa użytkownika z ikoną zaproszenia
         self.name_label = QLabel(f"📩 {self.requester_username}")
         self.name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.name_label.setStyleSheet("font-weight: bold; color: #1976D2;")
         layout.addWidget(self.name_label)
 
-        # Przycisk Accept (zielony)
         self.accept_button = QPushButton("✓")
         self.accept_button.setFixedSize(24, 24)
         self.accept_button.setStyleSheet("""
@@ -45,7 +41,6 @@ class FriendRequestWidget(QWidget):
         self.accept_button.clicked.connect(self.on_accept)
         layout.addWidget(self.accept_button)
 
-        # Przycisk Deny (czerwony)
         self.deny_button = QPushButton("✕")
         self.deny_button.setFixedSize(24, 24)
         self.deny_button.setStyleSheet("""

@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-reComm - Klient TCP z automatycznym ponownym łączeniem
-"""
 
 import socket
 import threading
@@ -16,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionState(Enum):
-    """Stan połączenia klienta"""
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -24,17 +20,6 @@ class ConnectionState(Enum):
 
 
 class TCPClient:
-    """
-    Klient TCP z automatycznym ponownym łączeniem i heartbeat.
-
-    Użycie:
-        client = TCPClient("localhost", 8080)
-        client.on_message = lambda msg: print(f"Otrzymano: {msg}")
-        client.on_connection_change = lambda state: print(f"Stan: {state}")
-        client.connect()
-        client.send("Hello!")
-    """
-
     def __init__(
         self,
         host: str,
@@ -46,19 +31,6 @@ class TCPClient:
         buffer_size: int = 2048,
         auto_reconnect: bool = True
     ):
-        """
-        Inicjalizacja klienta TCP.
-
-        Args:
-            host: Adres serwera
-            port: Port serwera
-            reconnect_delay: Początkowe opóźnienie przed ponownym połączeniem (sekundy)
-            max_reconnect_delay: Maksymalne opóźnienie między próbami połączenia
-            heartbeat_interval: Interwał heartbeat (0 = wyłączony)
-            connection_timeout: Timeout połączenia
-            buffer_size: Rozmiar bufora odbiorczego
-            auto_reconnect: Czy automatycznie wznawiać połączenie
-        """
         self.host = host
         self.port = port
         self.reconnect_delay = reconnect_delay

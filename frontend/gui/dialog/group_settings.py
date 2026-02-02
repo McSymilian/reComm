@@ -25,7 +25,6 @@ class GroupSettingsDialog(QDialog):
     def init_ui(self):
         layout = QVBoxLayout(self)
 
-        # Sekcja zmiany nazwy grupy
         name_group = QGroupBox("Nazwa grupy")
         name_layout = QHBoxLayout()
 
@@ -40,7 +39,6 @@ class GroupSettingsDialog(QDialog):
         name_group.setLayout(name_layout)
         layout.addWidget(name_group)
 
-        # Sekcja członków grupy
         members_group = QGroupBox("Członkowie grupy")
         members_layout = QVBoxLayout()
 
@@ -48,7 +46,6 @@ class GroupSettingsDialog(QDialog):
         self.load_members()
         members_layout.addWidget(self.members_list)
 
-        # Dodawanie nowego członka
         add_member_layout = QHBoxLayout()
         self.new_member_input = QLineEdit()
         self.new_member_input.setPlaceholderText("Nazwa użytkownika")
@@ -62,11 +59,9 @@ class GroupSettingsDialog(QDialog):
         members_group.setLayout(members_layout)
         layout.addWidget(members_group)
 
-        # Przyciski akcji
         actions_layout = QHBoxLayout()
 
         if self.is_owner:
-            # Właściciel może usunąć grupę
             self.delete_button = QPushButton("🗑 Usuń grupę")
             self.delete_button.setStyleSheet("""
                 QPushButton {
@@ -85,7 +80,6 @@ class GroupSettingsDialog(QDialog):
             self.delete_button.clicked.connect(self.on_delete_group)
             actions_layout.addWidget(self.delete_button)
         else:
-            # Pozostali mogą opuścić grupę
             self.leave_button = QPushButton("🚪 Opuść grupę")
             self.leave_button.setStyleSheet("""
                 QPushButton {
@@ -113,7 +107,6 @@ class GroupSettingsDialog(QDialog):
         layout.addLayout(actions_layout)
 
     def load_members(self):
-        """Ładuje listę członków grupy."""
         self.members_list.clear()
         for member in self.members:
             if isinstance(member, dict):
@@ -121,7 +114,6 @@ class GroupSettingsDialog(QDialog):
             else:
                 username = str(member)
 
-            # Oznacz właściciela
             if username == self.owner_username:
                 item = QListWidgetItem(f"👑 {username} (właściciel)")
             else:
@@ -130,7 +122,6 @@ class GroupSettingsDialog(QDialog):
             self.members_list.addItem(item)
 
     def on_change_name(self):
-        """Zmienia nazwę grupy."""
         new_name = self.name_input.text().strip()
         if not new_name:
             QMessageBox.warning(self, "Błąd", "Wprowadź nową nazwę grupy.")
@@ -151,7 +142,6 @@ class GroupSettingsDialog(QDialog):
             QMessageBox.critical(self, "Błąd", f"Wystąpił błąd: {str(e)}")
 
     def on_add_member(self):
-        """Dodaje nowego członka do grupy."""
         username = self.new_member_input.text().strip()
         if not username:
             QMessageBox.warning(self, "Błąd", "Wprowadź nazwę użytkownika.")
@@ -161,7 +151,6 @@ class GroupSettingsDialog(QDialog):
             success = self.api_service.add_member_to_group(self.group_id, username)
             if success:
                 self.new_member_input.clear()
-                # Odśwież listę członków
                 self.members = self.api_service.get_group_members(self.group_id) or []
                 self.load_members()
                 QMessageBox.information(self, "Sukces", f"Dodano {username} do grupy.")
@@ -171,7 +160,6 @@ class GroupSettingsDialog(QDialog):
             QMessageBox.critical(self, "Błąd", f"Wystąpił błąd: {str(e)}")
 
     def on_leave_group(self):
-        """Opuszcza grupę."""
         reply = QMessageBox.question(
             self,
             "Potwierdź wyjście",
@@ -185,14 +173,13 @@ class GroupSettingsDialog(QDialog):
                 success = self.api_service.leave_group(self.group_id)
                 if success:
                     QMessageBox.information(self, "Sukces", f"Opuściłeś grupę '{self.group_name}'.")
-                    self.reject()  # Zamknij dialog
+                    self.reject()
                 else:
                     QMessageBox.warning(self, "Błąd", "Nie udało się opuścić grupy.")
             except Exception as e:
                 QMessageBox.critical(self, "Błąd", f"Wystąpił błąd: {str(e)}")
 
     def on_delete_group(self):
-        """Usuwa grupę (tylko dla właściciela)."""
         reply = QMessageBox.question(
             self,
             "Potwierdź usunięcie",
@@ -206,7 +193,7 @@ class GroupSettingsDialog(QDialog):
                 success = self.api_service.delete_group(self.group_id)
                 if success:
                     QMessageBox.information(self, "Sukces", f"Usunięto grupę '{self.group_name}'.")
-                    self.reject()  # Zamknij dialog
+                    self.reject()
                 else:
                     QMessageBox.warning(self, "Błąd", "Nie udało się usunąć grupy.")
             except Exception as e:

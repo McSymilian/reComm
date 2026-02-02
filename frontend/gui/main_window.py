@@ -184,7 +184,6 @@ class MainWindow(QMainWindow):
             pending_requests = self.api_service.get_pending_friend_requests() or []
             friends = self.api_service.get_all_friends() or []
 
-            # Normalizuj dane do porównania
             new_pending = []
             for request in pending_requests:
                 if isinstance(request, dict):
@@ -198,15 +197,12 @@ class MainWindow(QMainWindow):
 
             new_friends = [str(friend) for friend in friends]
 
-            # Sprawdź czy listy się zmieniły
             if new_pending == self.cached_pending_requests and new_friends == self.cached_friends:
-                return  # Brak zmian, nie odświeżaj UI
+                return
 
-            # Zaktualizuj cache
             self.cached_pending_requests = new_pending
             self.cached_friends = new_friends
 
-            # Odśwież UI
             logger.info(f"Refreshing friend list - changes detected")
             self.friends_list.clear()
 
@@ -231,7 +227,6 @@ class MainWindow(QMainWindow):
         try:
             groups = self.api_service.get_all_users_groups() or []
 
-            # Normalizuj dane do porównania
             new_groups = []
             for group in groups:
                 if isinstance(group, dict):
@@ -242,14 +237,11 @@ class MainWindow(QMainWindow):
                     group_name = str(group)
                 new_groups.append((group_id, group_name))
 
-            # Sprawdź czy lista się zmieniła
             if new_groups == self.cached_groups:
-                return  # Brak zmian, nie odświeżaj UI
+                return
 
-            # Zaktualizuj cache
             self.cached_groups = new_groups
 
-            # Odśwież UI
             logger.info(f"Refreshing groups list - changes detected")
             self.groups_list.clear()
 
@@ -308,13 +300,10 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Błąd", "Wprowadź nazwę grupy.")
 
     def on_group_settings(self, group_id: str, group_name: str):
-        """Otwiera okno ustawień grupy."""
         try:
-            # Pobierz szczegóły grupy
             group_details = self.api_service.get_group_details(group_id)
             members = self.api_service.get_group_members(group_id) or []
 
-            # Pobierz właściciela grupy
             owner_username = ""
             if group_details and isinstance(group_details, dict):
                 owner_username = group_details.get('owner', group_details.get('ownerUsername', ''))
@@ -330,7 +319,6 @@ class MainWindow(QMainWindow):
             )
             dialog.exec()
 
-            # Odśwież listę grup po zamknięciu dialogu
             self.load_groups()
 
         except Exception as e:
@@ -418,7 +406,6 @@ class MainWindow(QMainWindow):
         self.load_group_chat_messages(group_id)
 
     def load_group_chat_messages(self, group_id: str):
-        """Ładuje historię wiadomości z grupy."""
         try:
             messages = self.api_service.get_group_messages(group_id)
             if messages and self.chat_widget:
@@ -438,12 +425,10 @@ class MainWindow(QMainWindow):
             logger.warning(f"Błąd podczas ładowania wiadomości grupowych: {e}")
 
     def on_new_message_received(self, notification: dict):
-        """Obsługuje nową wiadomość otrzymaną z wątku powiadomień."""
         try:
             sender = notification.get('senderName', notification.get('sender', ''))
             content = notification.get('content', notification.get('message', ''))
 
-            # Sprawdź czy to wiadomość od aktualnie wybranego przyjaciela
             if self.current_chat_friend and sender == self.current_chat_friend:
                 if self.chat_widget:
                     is_own = (sender == self.username)
@@ -454,13 +439,11 @@ class MainWindow(QMainWindow):
             logger.warning(f"Błąd podczas obsługi nowej wiadomości: {e}")
 
     def on_group_message_received(self, notification: dict):
-        """Obsługuje nową wiadomość grupową otrzymaną z wątku powiadomień."""
         try:
             sender = notification.get('senderName', notification.get('sender', ''))
             content = notification.get('content', notification.get('message', ''))
             group_id = notification.get('groupId', notification.get('group_id', ''))
 
-            # Sprawdź czy to wiadomość z aktualnie wybranej grupy
             if self.current_chat_group_id and str(group_id) == str(self.current_chat_group_id):
                 if self.chat_widget and sender != self.username:
                     is_own = (sender == self.username)
@@ -495,24 +478,22 @@ class MainWindow(QMainWindow):
             logger.warning(f"Błąd podczas obsługi zaproszenia do znajomych: {e}")
 
     def on_accept_friend_request(self, requester_username: str):
-        """Akceptuje zaproszenie do znajomych."""
         try:
             success = self.api_service.accept_friend_request(requester_username)
             if success:
                 logger.info(f"Zaakceptowano zaproszenie od {requester_username}")
-                self.load_friends()  # Odśwież listę przyjaciół
+                self.load_friends()
             else:
                 QMessageBox.warning(self, "Błąd", f"Nie udało się zaakceptować zaproszenia od {requester_username}.")
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Wystąpił błąd: {str(e)}")
 
     def on_reject_friend_request(self, requester_username: str):
-        """Odrzuca zaproszenie do znajomych."""
         try:
             success = self.api_service.reject_friend_request(requester_username)
             if success:
                 logger.info(f"Odrzucono zaproszenie od {requester_username}")
-                self.load_friends()  # Odśwież listę przyjaciół
+                self.load_friends()
             else:
                 QMessageBox.warning(self, "Błąd", f"Nie udało się odrzucić zaproszenia od {requester_username}.")
         except Exception as e:
@@ -523,7 +504,6 @@ class MainWindow(QMainWindow):
         self.friends_timer.stop()
         self.groups_timer.stop()
 
-        # Zatrzymaj wątek powiadomień
         if hasattr(self, 'notification_worker'):
             self.notification_worker.stop()
 
